@@ -1,0 +1,9 @@
+-- [조인 2 - INNER] 주류 관련 카테고리에 속한 메뉴들의 카테고리명, 메뉴명, 가격 조회
+SELECT c.name AS category_name, m.name AS menu_name, m.price FROM menus m INNER JOIN menu_categories c ON m.category_id = c.id WHERE c.name LIKE '%소주%' OR c.name LIKE '%하이볼%';
+
+=== EXECUTION RESULT ===
+category_name	menu_name	price
+--------------------------------------------------
+소주/맥주	참이슬 후레쉬	5000
+소주/맥주	테라 생맥주 500ml	5000
+하이볼/칵테일	산토리 얼그레이 하이볼	8500

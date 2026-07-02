@@ -1,0 +1,5 @@
+-- [수정 1] 주방에서 조리가 끝난 18번 주문 건의 상태를 서빙 완료된 'SERVED' 상태로 업데이트
+UPDATE orders SET status = 'SERVED' WHERE id = 18;
+
+=== EXECUTION RESULT ===
+SQL Execution Success. Rows affected: 1

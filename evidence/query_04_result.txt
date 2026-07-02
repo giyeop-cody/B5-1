@@ -1,0 +1,9 @@
+-- [기본조회 4] 매장 내 좌석 중 수용 인원이 6명 이상인 다인석 및 단체석의 좌석 번호와 수용 인원수 조회
+SELECT table_number, capacity FROM store_tables WHERE capacity >= 6;
+
+=== EXECUTION RESULT ===
+table_number	capacity
+--------------------------------------------------
+7	6
+8	6
+9	8

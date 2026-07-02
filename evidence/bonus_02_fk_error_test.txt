@@ -1,0 +1,9 @@
+=== FOREIGN KEY INTEGRITY VIOLATION TEST ===
+Attempted Query:
+INSERT INTO orders (id, table_id, menu_id, quantity, order_time, status) VALUES (999, 9999, 1, 2, '2026-06-24 21:00:00', 'COOKING');
+
+=== DATABASE ENGINE EXCEPTION LOG ===
+Exception Type: sqlite3.IntegrityError
+Message: FOREIGN KEY constraint failed
+
+Status: Successfully blocked by RDBMS engine to prevent orphan records.

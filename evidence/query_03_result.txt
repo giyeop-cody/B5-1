@@ -1,0 +1,11 @@
+-- [기본조회 3] 현재 주방에서 조리 중인('COOKING') 주문 내역의 주문번호, 테이블 ID, 메뉴 ID, 주문시간 조회
+SELECT id, table_id, menu_id, order_time FROM orders WHERE status = 'COOKING' ORDER BY order_time ASC;
+
+=== EXECUTION RESULT ===
+id	table_id	menu_id	order_time
+--------------------------------------------------
+18	10	4	2026-06-24 20:15:00
+20	6	9	2026-06-24 20:20:00
+21	6	5	2026-06-24 20:21:00
+22	9	1	2026-06-24 20:30:00
+23	9	10	2026-06-24 20:31:00

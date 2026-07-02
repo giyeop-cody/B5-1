@@ -1,0 +1,15 @@
+-- [집계 2] 매장 좌석(테이블)별 누적 주문 총금액(SUM)을 정산 그룹화 집계하여 조회
+SELECT t.table_number, SUM(m.price * o.quantity) AS total_bill_amount FROM store_tables t INNER JOIN orders o ON t.id = o.table_id INNER JOIN menus m ON o.menu_id = m.id WHERE o.status != 'CANCELLED' GROUP BY t.id, t.table_number ORDER BY total_bill_amount DESC;
+
+=== EXECUTION RESULT ===
+table_number	total_bill_amount
+--------------------------------------------------
+9	138000
+7	65000
+3	55000
+5	54000
+1	41000
+8	38000
+4	28000
+6	28000
+10	17000

@@ -1,0 +1,13 @@
+=== KPI 1: CATEGORY REVENUE SHARE ===
+탕/전골 요리: 128000 KRW
+시그니처 메인: 102000 KRW
+소주/맥주: 85000 KRW
+튀김/안주류: 33000 KRW
+프리미엄 전통주: 28000 KRW
+볶음/철판 요리: 24000 KRW
+식사류: 22000 KRW
+가벼운 사이드: 20000 KRW
+하이볼/칵테일: 17000 KRW
+음료/탄산: 5000 KRW
+
+KPI Metrics successfully generated via SQL queries.

@@ -1,0 +1,5 @@
+-- [삭제 1] 취소 처리된('CANCELLED') 25번 주문 건을 DB 트랜잭션 이력에서 삭제
+DELETE FROM orders WHERE id = 25;
+
+=== EXECUTION RESULT ===
+SQL Execution Success. Rows affected: 1

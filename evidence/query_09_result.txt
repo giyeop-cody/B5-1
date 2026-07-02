@@ -1,0 +1,16 @@
+-- [집계 1] 메뉴 카테고리별 등록된 메뉴 종류 수(COUNT)와 평균 단가(AVG)를 그룹화 집계하여 조회
+SELECT c.name AS category_name, COUNT(m.id) AS menu_count, ROUND(AVG(m.price), 0) AS avg_menu_price FROM menu_categories c INNER JOIN menus m ON c.id = m.category_id GROUP BY c.id, c.name ORDER BY menu_count DESC;
+
+=== EXECUTION RESULT ===
+category_name	menu_count	avg_menu_price
+--------------------------------------------------
+시그니처 메인	2	20000.0
+튀김/안주류	2	16500.0
+가벼운 사이드	2	10000.0
+식사류	2	6000.0
+소주/맥주	2	5000.0
+탕/전골 요리	1	32000.0
+볶음/철판 요리	1	24000.0
+하이볼/칵테일	1	8500.0
+프리미엄 전통주	1	28000.0
+음료/탄산	1	2500.0
