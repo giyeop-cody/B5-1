@@ -156,3 +156,73 @@ Error: FOREIGN KEY constraint failed
 
 > 💡 **스크린샷 안내**: 위 실행 결과는 SQLite CLI/DBeaver에서 실행한 텍스트 출력입니다. 
 > 실제 GUI 도구(DBeaver, DB Browser for SQLite)에서 실행하면 결과 표 형태로 표시됩니다.
+
+---
+
+## 8. 컬럼 타입 선택 근거 (#8 보완)
+
+| 컬럼 | 타입 | 선택 근거 |
+|------|------|-----------|
+| id | INTEGER | 기본키, 자동 증가, 정수 정렬이 빠름 |
+| name | TEXT | 가변 길이 문자열, 메뉴명/카테고리명은 길이가 다양 |
+| price | INTEGER | 원화 단위, 소수점 불필요, 정수 연산이 빠름 |
+| capacity | INTEGER | 좌석 수, 정수 비교가 명확 |
+| quantity | INTEGER | 주문 수량, 정수 |
+| status | TEXT | 'COOKING'/'SERVED' 문자열, 가독성 우선 |
+| created_at | TEXT | SQLite는 DATETIME을 TEXT로 저장 (ISO 8601 형식), 정렬 가능 |
+
+---
+
+## 9. INNER JOIN vs LEFT JOIN 차이 (#12 보완)
+
+| 구분 | INNER JOIN | LEFT JOIN |
+|------|-----------|-----------|
+| 동작 | 양쪽 테이블에 **매칭되는 행만** 반환 | 왼쪽 테이블의 **모든 행**을 반환, 오른쪽에 매칭이 없으면 NULL |
+| 결과 행 수 | 매칭되는 행만 (적을 수 있음) | 왼쪽 테이블 전체 (더 많을 수 있음) |
+| 사용 시기 | 관계가 확실한 데이터만 필요할 때 | 모든 기준 데이터를 포함해야 할 때 |
+| 본 과제 예 | 조리 중인 주문 조회 (주문이 있는 것만) | 좌석별 평균 주문 금액 (주문이 없는 좌석도 0으로 표시) |
+
+### 예시
+```sql
+-- INNER JOIN: 주문이 있는 좌석만
+SELECT t.table_number, COUNT(o.id) as order_count
+FROM store_tables t
+INNER JOIN orders o ON o.table_id = t.id
+GROUP BY t.table_number;
+-- 결과: 3, 5, 7번 테이블만 (주문이 있는 좌석)
+
+-- LEFT JOIN: 모든 좌석 (주문이 없으면 0)
+SELECT t.table_number, COUNT(o.id) as order_count
+FROM store_tables t
+LEFT JOIN orders o ON o.table_id = t.id
+GROUP BY t.table_number;
+-- 결과: 1~12번 테이블 전체 (주문이 없으면 0)
+```
+
+---
+
+## 10. 개발 과정: 난관과 해결 (#15 보완)
+
+### 난관 1: SQLite 외래키 제약 미동작
+- **문제**: FK를 설정했지만 존재하지 않는 좌석 ID로 주문을 넣어도 에러가 안 남
+- **원인**: SQLite는 기본적으로 FK 제약을 비활성화 상태로 둠
+- **해결**: `PRAGMA foreign_keys = ON;`을 스키마 파일 상단에 추가
+- **배운 점**: DB마다 기본 동작이 다름 (MySQL은 FK 기본 활성화, SQLite는 명시적 활성화 필요)
+
+### 난관 2: 집계 쿼리에서 주문 없는 좌석 누락
+- **문제**: 좌석별 평균 주문 금액을 계산할 때 주문이 없는 좌석이 결과에서 누락됨
+- **원인**: INNER JOIN을 사용해서 주문이 없는 좌석은 조인 결과에서 제외
+- **해결**: LEFT JOIN으로 변경 + COALESCE()로 NULL을 0으로 변환
+- **배운 점**: JOIN 종류 선택이 집계 결과에 큰 영향을 미침
+
+### 난관 3: ERD 이미지 생성
+- **문제**: dbdiagram.io에서 이미지 내보내기가 유료였음
+- **해결**: Python Matplotlib으로 테이블 박스와 관계선을 직접 그려 erd_diagram.png 생성
+- **배운 점**: 도구에 의존하지 않고 직접 구현하는 능력도 중요
+
+### 난관 4: UPDATE 쿼리 안전성
+- **문제**: 조리 상태 변경 시 다른 주문의 상태까지 변경할 위험
+- **해결**: WHERE 조건에 주문 ID와 현재 상태를 모두 명시: `WHERE id = ? AND status = 'COOKING'`
+- **배운 점**: UPDATE/DELETE는 WHERE 조건을 최대한 구체적으로 작성해야 함
+
+> 상세 기록: `docs/development-log.md`, `docs/complex-query-analysis.md` 참조
