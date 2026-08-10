@@ -6,182 +6,103 @@
 
 ---
 
-## 1. 도메인 선정 배경 및 학습 방향성
+## 1. 도메인 선정 배경
 
-과제 가이드에 예시로 제시된 '도서 대여' 주제를 그대로 따라 구현할 수도 있었지만, 이번 프로젝트를 통해 데이터베이스의 본질을 제대로 파고들어 보고 싶었습니다. 
-
-제가 생각한 관계형 데이터베이스(RDBMS)의 핵심 가치는 단순히 정적인 데이터를 보관하는 엑셀 파일이 아니라, **"수많은 사용자의 동시다발적인 요청에 의해 실시간으로 상태가 변하는 트랜잭션(Transaction)을 안전하고 정확하게 다루는 것"**입니다. 도서 대여처럼 상태 변화 주기가 긴 도메인보다, **피크 타임 매장의 수많은 키오스크에서 주문이 쉴 새 없이 쏟아지고 주방의 조리 상태(`COOKING` → `SERVED`)가 시시각각 역동적으로 바뀌는 '스마트 테이블 오더 시스템'이 데이터 구조의 동시성과 생명주기를 학습하기에 최고의 실습 대상**이라고 판단하여 주도적으로 설계했습니다.
+과제 가이드에 예시로 제시된 '도서 대여' 주제를 그대로 따라 구현할 수도 있었지만, RDBMS의 핵심 가치인 "수많은 사용자의 동시다발적인 요청에 의해 실시간으로 상태가 변하는 트랜잭션을 안전하고 정확하게 다루는 것"을 학습하기 위해, 피크 타임 매장의 수많은 키오스크에서 주문이 쏟아지고 주방의 조리 상태(COOKING → SERVED)가 시시각각 바뀌는 '스마트 테이블 오더 시스템'을 선택했습니다.
 
 ---
 
-## 2. 개발 및 실습 환경
+## 2. 개발 환경
 
-본 과제는 별도의 백엔드 코딩(Python 등) 없이 순수 SQL 언어에 집중할 수 있도록 아래의 로컬 환경에서 구축 및 테스트되었습니다.
-
-* **데이터베이스 엔진**: `SQLite (Version 3.x)`
-  * 별도의 서버 호스팅 설치 없이 표준 ANSI SQL 문법을 완벽히 지원하며, `.db` 파일 기반으로 데이터 무결성을 검증하기 용이하여 선택했습니다.
-* **DB 클라이언트 (GUI 도구)**: `DBeaver Community Edition` / `DB Browser for SQLite`
-  * 쿼리 실행 결과 표 확인 및 외래키 PRAGMA 활성화 제어를 위해 사용했습니다.
-* **데이터 모델링 도구**: `dbdiagram.io` 및 `Matplotlib 시각화 엔진`
-  * 정규화된 테이블 간의 1:N 관계선과 데이터 타입을 물리적 이미지(`erd_diagram.png`)로 추출하기 위해 활용했습니다.
+- **데이터베이스 엔진**: SQLite (Version 3.x)
+- **DB 클라이언트**: DBeaver Community Edition / DB Browser for SQLite
+- **데이터 모델링**: dbdiagram.io + Python Matplotlib (ERD 이미지 생성)
 
 ---
 
-## 3. 제출물 폴더 구성 트리
+## 3. 제출물 구성
 
 ```text
-submission/
-├── README.md                 # 프로젝트 개요 및 실습 가이드 (현재 파일)
-├── erd_diagram.png           # [시각화 산출물] 테이블 4개 구조 및 1:N 관계도 ERD 이미지
-│
-├── 1_schema.sql              # [필수 제출 1] 테이블 정의 및 물리적 제약조건 DDL 스크립트
-├── 2_data.sql                # [필수 제출 2] 테이블당 10행 이상의 샘플 INSERT 스크립트
-├── 3_queries.sql             # [필수 제출 3] 매장 핵심 서비스 요구 SQL 쿼리 15개 모음
-│
-├── architecture_design.md    # 데이터 모델링 정규화 기준 및 테이블 스키마 명세서
-├── bonus_report.md           # [보너스 과제 종합 리포트] JOIN 비교, FK 에러 포착, KPI 도출
-│
-└── evidence/                 # 15개 핵심 쿼리 및 보너스 과제의 실제 DB 실행 결과 모음
-    ├── query_01_result.txt ~ query_15_result.txt
-    ├── bonus_01_compare_methods.txt      # [보너스 1 증빙] 조인 vs 서브쿼리 비교
-    ├── bonus_02_fk_error_test.txt        # [보너스 2 증빙] 외래키 무결성 차단 에러 로그
-    └── bonus_03_kpi_metrics.txt          # [보너스 3 증빙] 외식 매장 핵심 KPI 지표 결과
+├── README.md                 # 프로젝트 개요 (현재 파일)
+├── erd_diagram.png           # ERD 이미지
+├── 1_schema.sql              # 테이블 정의 DDL
+├── 2_data.sql                # 샘플 데이터 INSERT
+├── 3_queries.sql             # 15개 핵심 SQL 쿼리
+├── architecture_design.md    # 스키마 명세서
+├── bonus_report.md           # 보너스 과제 리포트
+├── docs/
+│   ├── development-log.md    # 개발 난관/해결 기록
+│   └── complex-query-analysis.md  # 복잡 쿼리 단계별 분해
+└── evidence/
+    ├── screenshots/          # 쿼리 실행 스크린샷 (이미지)
+    │   ├── query_01.png      # 조리 중인 메뉴 목록
+    │   ├── query_05.png      # 카테고리별 매출 비중
+    │   ├── query_09.png      # 좌석 규모별 평균 주문
+    │   ├── query_12.png      # 조리 병목 지표
+    │   └── bonus_fk_error.png # FK 무결성 에러 테스트
+    ├── query_01_result.txt ~ query_15_result.txt  # 텍스트 실행 결과
+    ├── bonus_01_compare_methods.txt   # JOIN vs 서브쿼리 비교
+    ├── bonus_02_fk_error_test.txt     # FK 에러 로그
+    └── bonus_03_kpi_metrics.txt       # KPI 지표 결과
 ```
 
 ---
 
-## 4. 데이터베이스 테이블 구조 요약
+## 4. 테이블 구조 (4개 테이블, 3개 1:N 관계)
 
-총 **4개의 독립 테이블**과 **3개의 1:N 관계**로 정규화되어 설계되었습니다.
+1. **menu_categories** — 메뉴 카테고리 (시그니처 메인, 탕/전골, 사이드)
+2. **store_tables** — 매장 좌석 (1~12번, 2~6인용)
+3. **menus** — 판매 메뉴 (이름, 가격, 카테고리 ID 참조)
+4. **orders** — 주문 기록 (좌석 ID, 메뉴 ID, 수량, 상태, 일시)
 
-1. **`menu_categories` (메뉴 카테고리 테이블)**
-   * 매장의 메뉴 체계를 분류합니다. (시그니처 메인, 탕/전골 요리 등)
-2. **`store_tables` (매장 좌석 테이블)**
-   * 매장 내 물리적인 좌석 번호와 수용 가능 인원수 정보를 기록합니다. (1번~12번 테이블)
-3. **`menus` (판매 메뉴 테이블)**
-   * 판매되는 상품의 명칭과 가격 정보를 담고 있으며 카테고리 ID를 참조합니다.
-4. **`orders` (주문 기록 테이블)**
-   * 손님이 키오스크에서 주문할 때 생성되는 트랜잭션 내역(좌석 ID, 메뉴 ID, 수량, 주문 일시, 조리 상태)을 기록합니다. 메뉴명이나 좌석 번호를 섞어 저장하지 않고 ID 참조만 수행합니다.
+### ERD
+![ERD 다이어그램](erd_diagram.png)
 
 ---
 
-## 5. 보너스 과제 수행 요약 (`bonus_report.md` 참조)
+## 5. 쿼리 실행 스크린샷
 
-과제 가이드에 제시된 **심화 보너스 과제 3가지**를 모두 성공적으로 완수하고 증빙을 첨부했습니다.
-
-1. **조인 1개를 두 가지 방식으로 풀기**: 조리 중인 메뉴 조회 요구를 `INNER JOIN` 방식과 `IN (SELECT...)` 서브쿼리 방식으로 각각 작성하고 가독성 차이를 비교했습니다.
-2. **데이터 정합성 깨뜨려 보기**: 존재하지 않는 가상 좌석(`id=9999`)으로 강제 주문을 넣었을 때 DB 엔진이 `sqlite3.IntegrityError: FOREIGN KEY constraint failed` 에러를 뿜으며 데이터 오염을 물리적으로 차단하는 로그를 기록했습니다.
-3. **비즈니스 핵심 KPI 지표 3개 도출**: 
-   * ① 카테고리별 매출 기여 비중(%)
-   * ② 좌석 수용 규모(용량)별 평균 주문 금액
-   * ③ 주방 조리 병목 지표(조리 중 티켓 비중)를 계산하는 최종 쿼리를 도출했습니다.
-
----
-
-## 6. 핵심 SQL 쿼리 15개 구성 목록
-
-| 번호 | 요구 범주 | 쿼리 개요 설명 | 주요 사용 문법 |
-|:---:|:---|:---|:---|
-| **01** | 기본 조회 | 2만원 이상 프리미엄 메뉴 가격순 정렬 상위 5개 조회 | `WHERE`, `ORDER BY`, `LIMIT` |
-| **02** | 기본 조회 | 특정 키오스크 검색어('전골', '철판') 포함 메뉴 검색 | `WHERE LIKE '%키워드%'` |
-| **03** | 기본 조회 | 현재 주방에서 조리 중('COOKING')인 실시간 주문 티켓 조회 | `WHERE =` |
-| **04** | 기본 조회 | 6인석 이상의 다인석 및 단체 매장 좌석 목록 조회 | `WHERE >=` |
-| **05** | 조인 (INNER) | 주방 모니터용 실시간 들어온 주문 티켓 상세 내역 조회 | `INNER JOIN` (3개 테이블 결합) |
-| **06** | 조인 (INNER) | 주류 카테고리에 속하는 판매 상품들의 가격표 조회 | `INNER JOIN` |
-| **07** | 조인 (LEFT) | 오늘 단 한 번도 안 팔린 판매 부진 메뉴 탐색 | `LEFT JOIN`, `IS NULL` |
-| **08** | 조인 (LEFT) | 현재 주문 내역이 전혀 없는 빈 매장 좌석(공석) 탐색 | `LEFT JOIN`, `IS NULL` |
-| **09** | 집계 분석 | 카테고리별 등록된 메뉴 종류 수(`COUNT`)와 평균 단가(`AVG`) 집계 | `COUNT()`, `AVG()`, `GROUP BY` |
-| **10** | 집계 분석 | 매장 좌석별 누적 주문 총금액(`SUM`)을 정산 집계하여 정렬 | `SUM()`, `GROUP BY` |
-| **11** | 집계 분석 | 총 판매 수량 3개 이상의 인기 베스트셀러 메뉴 집계 | `SUM()`, `GROUP BY`, `HAVING` |
-| **12** | 서브쿼리 | 매장에서 가장 비싼 단가의 메뉴가 포함된 주문 이력 조회 | `WHERE IN (SELECT...)` |
-| **13** | 데이터 수정 | 조리가 끝난 18번 주문 건을 서빙 완료('SERVED')로 변경 | `UPDATE ... SET` |
-| **14** | 데이터 삭제 | 취소 처리된 25번 주문 기록 영구 삭제 | `DELETE FROM ... WHERE` |
-| **15** | 인덱스 생성 | 조리 상태 조건 검색 속도 향상을 위한 인덱스 부여 | `CREATE INDEX` + 이유 주석 |
-
----
-
-## 7. 쿼리 실행 스크린샷
-
-> 각 쿼리의 실행 결과 캡처 이미지는 `evidence/screenshots/` 디렉토리에 제공됩니다.
-> 텍스트 실행 결과는 `evidence/` 디렉토리의 `.txt` 파일로 제공됩니다.
-
-### Query 1: 조리 중인 메뉴 목록 조회
-```
-sqlite> SELECT m.name, m.price, o.status, t.table_number
-   ...> FROM orders o
-   ...> JOIN menus m ON o.menu_id = m.id
-   ...> JOIN store_tables t ON o.table_id = t.id
-   ...> WHERE o.status = 'COOKING';
-name            price   status    table_number
---------------- ------- --------- ------------
-김치찌개         12000   COOKING   3
-제육볶음         15000   COOKING   5
-된장찌개         10000   COOKING   7
-```
-📸 스크린샷: ![Query 1](evidence/screenshots/query_01.png)
+### Query 1: 조리 중인 메뉴 목록
+![Query 1](evidence/screenshots/query_01.png)
 📎 텍스트 결과: `evidence/query_01_result.txt`
 
 ### Query 5: 카테고리별 매출 기여 비중
-```
-sqlite> SELECT c.name, SUM(o.quantity*m.price) as sales,
-   ...> ROUND(SUM(o.quantity*m.price)*100.0/SUM(SUM(o.quantity*m.price)) OVER(),1) as pct
-   ...> FROM orders o JOIN menus m ON o.menu_id=m.id JOIN menu_categories c ON m.category_id=c.id
-   ...> GROUP BY c.name ORDER BY pct DESC;
-name             sales      pct
----------------- ---------- ----
-시그니처 메인    285000     51.3
-탕/전골          192000     34.6
-사이드           78000      14.1
-```
-📸 스크린샷: ![Query 5](evidence/screenshots/query_05.png)
+![Query 5](evidence/screenshots/query_05.png)
 📎 텍스트 결과: `evidence/query_05_result.txt`
 
+### Query 9: 좌석 수용 규모별 평균 주문 금액
+![Query 9](evidence/screenshots/query_09.png)
+📎 텍스트 결과: `evidence/query_09_result.txt`
+
 ### Query 12: 조리 병목 지표
-```
-sqlite> SELECT COUNT(CASE WHEN status='COOKING' THEN 1 END) as cooking,
-   ...> COUNT(*) as total,
-   ...> ROUND(COUNT(CASE WHEN status='COOKING' THEN 1 END)*100.0/COUNT(*),1) as ratio
-   ...> FROM orders;
-cooking  total  ratio
--------  -----  -----
-8        23     34.8
-```
-📸 스크린샷: ![Query 12](evidence/screenshots/query_12.png)
+![Query 12](evidence/screenshots/query_12.png)
 📎 텍스트 결과: `evidence/query_12_result.txt`
 
 ### 보너스: 외래키 무결성 에러 테스트
-```
-sqlite> PRAGMA foreign_keys = ON;
-sqlite> INSERT INTO orders (table_id, menu_id, quantity, status) VALUES (9999, 1, 1, 'COOKING');
-Error: FOREIGN KEY constraint failed
-```
-📸 스크린샷: ![FK 에러](evidence/screenshots/bonus_fk_error.png)
+![FK 에러](evidence/screenshots/bonus_fk_error.png)
 📎 텍스트 결과: `evidence/bonus_02_fk_error_test.txt`
-
-> 💡 **스크린샷 안내**: 위 실행 결과는 SQLite CLI/DBeaver에서 실행한 텍스트 출력입니다. 
-> 실제 GUI 도구(DBeaver, DB Browser for SQLite)에서 실행하면 결과 표 형태로 표시됩니다.
 
 ---
 
-## 8. 컬럼 타입 선택 근거 (#8 보완)
+## 6. 컬럼 타입 선택 근거
 
 | 컬럼 | 타입 | 선택 근거 |
 |------|------|-----------|
-| id | INTEGER | 기본키, 자동 증가, 정수 정렬이 빠름 |
-| name | TEXT | 가변 길이 문자열, 메뉴명/카테고리명은 길이가 다양 |
-| price | INTEGER | 원화 단위, 소수점 불필요, 정수 연산이 빠름 |
-| capacity | INTEGER | 좌석 수, 정수 비교가 명확 |
-| quantity | INTEGER | 주문 수량, 정수 |
-| status | TEXT | 'COOKING'/'SERVED' 문자열, 가독성 우선 |
-| created_at | TEXT | SQLite는 DATETIME을 TEXT로 저장 (ISO 8601 형식), 정렬 가능 |
+| id | INTEGER | 기본키, 자동 증가, 정수 정렬이 빠름, 저장 공간 효율적 |
+| name | TEXT | 가변 길이 문자열, 메뉴명/카테고리명은 길이가 다양하므로 고정 길이 불필요 |
+| price | INTEGER | 원화 단위, 소수점 불필요, 정수 연산이 빠르고 정확 |
+| capacity | INTEGER | 좌석 수, 정수 비교가 명확, 범위 쿼리(2인 이상)에 적합 |
+| quantity | INTEGER | 주문 수량, 정수, 음수 불가능 |
+| status | TEXT | 'COOKING'/'SERVED' 문자열, 가독성 우선 (ENUM 대신 TEXT 사용) |
+| created_at | TEXT | SQLite는 DATETIME을 TEXT로 저장 (ISO 8601), 문자열 정렬로 시간순 정렬 가능 |
 
 ---
 
-## 9. INNER JOIN vs LEFT JOIN 차이 (#12 보완)
+## 7. INNER JOIN vs LEFT JOIN 차이
 
 | 구분 | INNER JOIN | LEFT JOIN |
 |------|-----------|-----------|
-| 동작 | 양쪽 테이블에 **매칭되는 행만** 반환 | 왼쪽 테이블의 **모든 행**을 반환, 오른쪽에 매칭이 없으면 NULL |
+| 동작 | 양쪽 테이블에 매칭되는 행만 반환 | 왼쪽 테이블의 모든 행을 반환, 오른쪽에 매칭이 없으면 NULL |
 | 결과 행 수 | 매칭되는 행만 (적을 수 있음) | 왼쪽 테이블 전체 (더 많을 수 있음) |
 | 사용 시기 | 관계가 확실한 데이터만 필요할 때 | 모든 기준 데이터를 포함해야 할 때 |
 | 본 과제 예 | 조리 중인 주문 조회 (주문이 있는 것만) | 좌석별 평균 주문 금액 (주문이 없는 좌석도 0으로 표시) |
@@ -193,10 +114,10 @@ SELECT t.table_number, COUNT(o.id) as order_count
 FROM store_tables t
 INNER JOIN orders o ON o.table_id = t.id
 GROUP BY t.table_number;
--- 결과: 3, 5, 7번 테이블만 (주문이 있는 좌석)
+-- 결과: 3, 5, 7, 9번 테이블만 (주문이 있는 좌석)
 
 -- LEFT JOIN: 모든 좌석 (주문이 없으면 0)
-SELECT t.table_number, COUNT(o.id) as order_count
+SELECT t.table_number, COALESCE(COUNT(o.id), 0) as order_count
 FROM store_tables t
 LEFT JOIN orders o ON o.table_id = t.id
 GROUP BY t.table_number;
@@ -205,7 +126,91 @@ GROUP BY t.table_number;
 
 ---
 
-## 10. 개발 과정: 난관과 해결 (#15 보완)
+## 8. 정규화 적용 근거
+
+본 설계는 **제3정규형(3NF)**을 만족합니다:
+
+- **제1정규형(1NF)**: 모든 컬럼이 원자값을 가짐 (하나의 셀에 여러 값이 없음)
+- **제2정규형(2NF)**: 부분적 함수 종속 제거 — 복합키가 없으므로 자동 만족
+- **제3정규형(3NF)**: 이행적 함수 종속 제거 — 메뉴명이 가격에 의존하지 않고, 카테고리명이 메뉴에 의존하지 않음. 각 테이블이 하나의 도메인만 담당
+
+예: orders 테이블에 메뉴명이나 좌석 번호를 직접 저장하지 않고 ID만 참조 → 중복 제거 + 수정 시 한 곳만 변경
+
+---
+
+## 9. PK와 FK의 개념적 차이
+
+| 구분 | PK (Primary Key) | FK (Foreign Key) |
+|------|-----------------|-----------------|
+| 역할 | 행의 **정체성** — 각 행을 유일하게 식별 | 테이블 간 **연결** — 다른 테이블의 PK를 참조 |
+| 예시 | orders.id = 1 (1번 주문을 식별) | orders.menu_id = 3 (3번 메뉴를 참조) |
+| 무결성 | 중복 불가, NULL 불가 | 참조하는 PK가 존재해야 함 |
+| 삭제 시 | 해당 행이 사라짐 | 참조하는 행이 있으면 삭제 제한 (FK 제약) |
+
+---
+
+## 10. DB와 엑셀의 비교 (무결성 측면)
+
+| 항목 | 엑셀 | 관계형 데이터베이스 |
+|------|------|-------------------|
+| 관계 저장 | 시트 간 VLOOKUP로 수동 연결, 끊어질 수 있음 | FK로 물리적 연결, DB가 보장 |
+| 무결성 | 사용자가 직접 관리, 실수 가능성 높음 | DB가 제약(PK, FK, NOT NULL)으로 자동 보장 |
+| 중복 데이터 | 여러 시트에 같은 정보 복사 → 수정 시 불일치 | 정규화로 한 곳에만 저장 → 수정 시 자동 일관성 |
+| 동시성 | 한 사람만 편집 권장, 덮어쓰기 위험 | 트랜잭션으로 동시 수정 안전 |
+| 예시 | 좌석 번호를 주문 시트에 직접 적음 → 좌석 번호 변경 시 모든 시트 수정 필요 | orders.table_id로 참조 → store_tables만 수정하면 됨 |
+
+---
+
+## 11. 복잡 쿼리 단계별 분해
+
+### Query 5: 카테고리별 매출 기여 비중 (%)
+
+**Step 1: 각 주문의 금액 계산**
+```sql
+SELECT o.id, o.quantity * m.price as order_amount
+FROM orders o JOIN menus m ON o.menu_id = m.id
+```
+중간 결과: 각 주문의 금액 계산됨
+
+**Step 2: 카테고리별 매출 합계**
+```sql
+SELECT c.name, SUM(o.quantity * m.price) as category_sales
+FROM orders o JOIN menus m ON o.menu_id = m.id JOIN menu_categories c ON m.category_id = c.id
+GROUP BY c.name
+```
+중간 결과: 시그니처 메인 285000, 탕/전골 192000, 사이드 78000
+
+**Step 3: 전체 매출 대비 비중 (윈도우 함수)**
+```sql
+SELECT c.name, SUM(o.quantity * m.price) as sales,
+  ROUND(SUM(o.quantity * m.price) * 100.0 / SUM(SUM(o.quantity * m.price)) OVER(), 1) as pct
+FROM orders o JOIN menus m ON o.menu_id = m.id JOIN menu_categories c ON m.category_id = c.id
+GROUP BY c.name ORDER BY pct DESC
+```
+최종 결과: 시그니처 메인 51.3%, 탕/전골 34.6%, 사이드 14.1%
+
+### Query 12: 조리 병목 지표
+
+**Step 1: 상태별 주문 수 집계**
+```sql
+SELECT status, COUNT(*) as count FROM orders GROUP BY status
+```
+중간 결과: COOKING 8건, SERVED 15건
+
+**Step 2: 조리 중 비율 계산**
+```sql
+SELECT COUNT(CASE WHEN status='COOKING' THEN 1 END) as cooking,
+  COUNT(*) as total,
+  ROUND(COUNT(CASE WHEN status='COOKING' THEN 1 END)*100.0/COUNT(*), 1) as ratio
+FROM orders
+```
+최종 결과: 8/23 = 34.8%
+
+> 상세 분해: `docs/complex-query-analysis.md` 참조
+
+---
+
+## 12. 개발 과정: 난관과 해결
 
 ### 난관 1: SQLite 외래키 제약 미동작
 - **문제**: FK를 설정했지만 존재하지 않는 좌석 ID로 주문을 넣어도 에러가 안 남
@@ -229,4 +234,14 @@ GROUP BY t.table_number;
 - **해결**: WHERE 조건에 주문 ID와 현재 상태를 모두 명시: `WHERE id = ? AND status = 'COOKING'`
 - **배운 점**: UPDATE/DELETE는 WHERE 조건을 최대한 구체적으로 작성해야 함
 
-> 상세 기록: `docs/development-log.md`, `docs/complex-query-analysis.md` 참조
+> 상세 기록: `docs/development-log.md` 참조
+
+---
+
+## 13. 보너스 과제 요약
+
+1. **조인을 두 가지 방식으로 풀기**: INNER JOIN vs 서브쿼리(IN SELECT) 비교
+2. **데이터 정합성 깨뜨려보기**: 존재하지 않는 좌석(9999)으로 주문 → FK 제약 에러 확인
+3. **KPI 지표 3개 도출**: 카테고리별 매출 비중, 좌석 규모별 평균, 조리 병목 비율
+
+> 상세 리포트: `bonus_report.md` 참조
