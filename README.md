@@ -102,8 +102,8 @@ submission/
 
 ## 7. 쿼리 실행 스크린샷
 
-> 각 쿼리의 실행 결과는 `evidence/` 디렉토리의 텍스트 파일로 제공됩니다.
-> 아래는 주요 쿼리의 실행 예시입니다.
+> 각 쿼리의 실행 결과 캡처 이미지는 `evidence/screenshots/` 디렉토리에 제공됩니다.
+> 텍스트 실행 결과는 `evidence/` 디렉토리의 `.txt` 파일로 제공됩니다.
 
 ### Query 1: 조리 중인 메뉴 목록 조회
 ```
@@ -118,7 +118,8 @@ name            price   status    table_number
 제육볶음         15000   COOKING   5
 된장찌개         10000   COOKING   7
 ```
-📎 실행 결과: `evidence/query_01_result.txt`
+📸 스크린샷: ![Query 1](evidence/screenshots/query_01.png)
+📎 텍스트 결과: `evidence/query_01_result.txt`
 
 ### Query 5: 카테고리별 매출 기여 비중
 ```
@@ -132,7 +133,8 @@ name             sales      pct
 탕/전골          192000     34.6
 사이드           78000      14.1
 ```
-📎 실행 결과: `evidence/query_05_result.txt`
+📸 스크린샷: ![Query 5](evidence/screenshots/query_05.png)
+📎 텍스트 결과: `evidence/query_05_result.txt`
 
 ### Query 12: 조리 병목 지표
 ```
@@ -144,7 +146,8 @@ cooking  total  ratio
 -------  -----  -----
 8        23     34.8
 ```
-📎 실행 결과: `evidence/query_12_result.txt`
+📸 스크린샷: ![Query 12](evidence/screenshots/query_12.png)
+📎 텍스트 결과: `evidence/query_12_result.txt`
 
 ### 보너스: 외래키 무결성 에러 테스트
 ```
@@ -152,7 +155,8 @@ sqlite> PRAGMA foreign_keys = ON;
 sqlite> INSERT INTO orders (table_id, menu_id, quantity, status) VALUES (9999, 1, 1, 'COOKING');
 Error: FOREIGN KEY constraint failed
 ```
-📎 실행 결과: `evidence/bonus_02_fk_error_test.txt`
+📸 스크린샷: ![FK 에러](evidence/screenshots/bonus_fk_error.png)
+📎 텍스트 결과: `evidence/bonus_02_fk_error_test.txt`
 
 > 💡 **스크린샷 안내**: 위 실행 결과는 SQLite CLI/DBeaver에서 실행한 텍스트 출력입니다. 
 > 실제 GUI 도구(DBeaver, DB Browser for SQLite)에서 실행하면 결과 표 형태로 표시됩니다.
