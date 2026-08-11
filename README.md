@@ -245,3 +245,32 @@ FROM orders
 3. **KPI 지표 3개 도출**: 카테고리별 매출 비중, 좌석 규모별 평균, 조리 병목 비율
 
 > 상세 리포트: `bonus_report.md` 참조
+
+---
+
+## 🚀 실행 방법
+
+### 사전 준비
+- SQLite 설치 (또는 Python 내장 sqlite3 사용)
+
+### 스키마 생성 + 데이터 입력
+```bash
+sqlite3 cafe_orders.db < schema.sql
+sqlite3 cafe_orders.db < seed_data.sql
+```
+
+### 쿼리 실행
+```bash
+sqlite3 cafe_orders.db < queries.sql
+```
+
+---
+
+## 🧪 테스트 방법
+
+### 수동 테스트
+1. `schema.sql` 실행 → 4개 테이블 생성 확인
+2. `seed_data.sql` 실행 → 각 테이블 10행 이상 확인
+3. 15개 쿼리 실행 → 각 결과 캡처
+4. JOIN 쿼리 → 연결된 데이터 조회 확인
+5. GROUP BY 쿼리 → 집계 결과 확인
