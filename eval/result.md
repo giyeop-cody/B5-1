@@ -3,7 +3,7 @@
 ## 기준
 
 - 정리일: 2026-08-15 (Asia/Seoul)
-- 구현 기준: `fix/mission-audit-remediation@25fa928`
+- 구현 기준: `fix/mission-audit-remediation@7747e94`
 - 공식 미션: 40시간, 테이블 4개 이상, 핵심 SQL 15개 이상
 
 ## 자동 구현 검증
