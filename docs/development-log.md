@@ -82,6 +82,13 @@
 - 문제: 실제 측정 없이 일반적인 성능 향상을 확정할 수 없다.
 - 해결: `idx_order_status`를 멱등 생성하고 현재 검증 DB의 실행 계획이 `SEARCH orders USING INDEX idx_order_status (status=?)`인지까지만 확인한다.
 
+### 2.11 검증할 때마다 임시 DB 경로가 달라졌음 — Issue #2
+
+- 발견: `scripts/check_all.sh`를 다시 실행하자 내용은 같지만 `evidence/verification_summary.txt`의 `/tmp/...` 경로만 바뀌었다.
+- 원인: 임시 디렉터리의 무작위 이름을 영구 증거 파일에 기록했다.
+- 해결: 경로 대신 `fresh SQLite database created for this run`이라는 안정된 설명을 기록한다.
+- 검증: 전체 검사를 연속 두 번 실행하고 모든 텍스트·PNG·ERD의 SHA-256 목록이 같은지 비교해 PASS를 확인했다.
+
 ## 3. 자동 검증 범위
 
 `python scripts/verify_project.py`는 다음을 검사한다.
