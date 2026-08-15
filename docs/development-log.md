@@ -1,35 +1,114 @@
-# 개발 과정: 난관과 해결 기록
+# B5-1 개발 및 트러블슈팅 기록
 
-## 1. 외래키 제약이 동작하지 않는 문제
+## 1. 작업 방식
 
-**문제**: SQLite에서 FK 제약조건을 설정했지만, 존재하지 않는 좌석 ID로 주문을 넣어도 에러가 발생하지 않았다.
+공식 미션 PDF를 기준으로 요구사항을 작은 단계로 나눴다.
 
-**원인**: SQLite는 기본적으로 외래키 제약을 비활성화 상태로 둔다. PRAGMA foreign_keys = ON;을 명시적으로 실행해야 한다.
+1. 요구사항과 기존 파일 비교
+2. SQL을 새 메모리 DB에서 직접 실행
+3. 한 종류의 변경을 적용
+4. 자동 검증 추가
+5. 결과 텍스트·이미지 재생성
+6. 문서와 실제 구현을 다시 대조
 
-**해결**: 스키마 파일 상단에 PRAGMA foreign_keys = ON; 추가, 모든 쿼리 실행 전에 PRAGMA를 먼저 실행하도록 변경.
+검토 중 발견한 문제는 GitHub Issue #1~#4에서 추적한다.
 
-**배운 점**: 데이터베이스마다 기본 동작이 다르다. MySQL은 FK가 기본 활성화지만 SQLite는 명시적 활성화가 필요하다.
+## 2. 처음 확인한 문제와 해결
 
-## 2. ERD 이미지 생성
+### 2.1 실행 파일명이 실제 파일과 달랐음 — Issue #1
 
-**문제**: dbdiagram.io에서 ERD를 설계했지만 이미지로 내보내려면 유료 플랜이 필요했다.
+- 문제: 안내에는 `schema.sql`, `data.sql`, `queries.sql`이라고 적혀 있었지만 실제 파일은 `1_schema.sql`, `2_data.sql`, `3_queries.sql`이었다.
+- 원인: 문서를 작성한 뒤 파일명 변경이 반영되지 않았다.
+- 해결: README와 요구사항 문서의 실행 명령을 실제 파일명으로 통일했다.
+- 재발 방지: `sqlite3` 실행 예시와 Python 대체 명령을 모두 실제 파일명으로 실행해 본다.
 
-**해결**: Python의 Matplotlib을 사용해서 테이블 박스와 관계선을 직접 그려 erd_diagram.png를 생성했다.
+### 2.2 DDL 설명과 SQLite 동작이 어긋났음 — Issue #1, #3
 
-## 3. 집계 쿼리에서 NULL 처리
+- 문제: 설명은 일반적인 DB 타입처럼 읽혔고, `PRAGMA foreign_keys = ON`의 연결 단위 특성이 충분히 드러나지 않았다.
+- 해결: SQLite에는 별도 DATETIME 저장 클래스가 없음을 설명하고 ISO 형식 문자열 사용 규칙을 기록했다. 모든 검증 연결에서 FK를 켠다.
 
-**문제**: 좌석별 평균 주문 금액을 계산할 때 주문이 없는 좌석이 결과에서 누락되었다.
+### 2.3 CHECK 제약이 부족했음 — Issue #3
 
-**원인**: INNER JOIN을 사용해서 주문이 없는 좌석은 조인 결과에서 제외되었다.
+- 재현: 수정 전 스키마에서 `quantity=-1`과 `status='INVALID'` 입력이 허용됐다.
+- 위험: SQL이 실행되더라도 업무 의미상 잘못된 데이터가 저장된다.
+- 해결:
+  - `menus.price >= 0`
+  - `store_tables.table_number > 0`
+  - `store_tables.capacity > 0`
+  - `orders.quantity > 0`
+  - `orders.status IN ('COOKING', 'SERVED', 'CANCELLED')`
+- 검증: 음수 수량과 잘못된 상태 입력이 모두 `CHECK constraint failed`로 차단됐다.
 
-**해결**: LEFT JOIN으로 변경하고 COALESCE()로 NULL을 0으로 변환했다.
+### 2.4 Query 7/8 설명과 실제 조건이 달랐음 — Issue #3
 
-**배운 점**: JOIN 종류(INNER vs LEFT) 선택이 집계 결과에 큰 영향을 미친다.
+- 문제: `LEFT JOIN`의 미매칭 행을 찾는 SQL인데 기존 설명이 다른 조건을 말하거나, 미주문 메뉴를 보여 줄 seed가 없었다.
+- 해결: Query 7은 전체 기간의 미주문 메뉴, Query 8은 전체 기간의 미주문 좌석을 찾는다고 설명을 통일했다. 한 번도 주문되지 않은 `유자차`를 seed에 추가했다.
+- 결과: Query 7은 `(16, '유자차', 4500)` 1행을 반환한다. Query 8은 주문 이력이 없는 `(2, 2)`, `(11, 2)`, `(12, 4)` 3행을 반환한다.
 
-## 4. 조리 상태 변경 쿼리 설계
+### 2.5 UPDATE/DELETE가 현재 상태를 확인하지 않았음 — Issue #3
 
-**문제**: 주문의 조리 상태를 COOKING → SERVED로 변경할 때 실수로 다른 주문의 상태까지 변경할 위험이 있었다.
+- 문제: ID만 일치하면 이미 처리된 주문도 다시 변경할 수 있었다.
+- 대안:
+  1. `WHERE id = ?`만 사용: 간단하지만 안전성이 낮다.
+  2. `WHERE id = ? AND status = ?` 사용: SQL이 조금 길지만 예상 상태일 때만 바뀐다.
+- 결정: 두 번째 방식을 선택했다.
+- 적용: Query 13은 주문 18이 `COOKING`일 때만 `SERVED`로 바꾸고, Query 14는 주문 25가 `CANCELLED`일 때만 삭제한다.
+- 결과: 각각 정확히 1행만 변경됐다.
 
-**해결**: UPDATE 쿼리에 WHERE 조건으로 주문 ID와 현재 상태를 모두 명시하여 의도하지 않은 변경을 방지했다.
+### 2.6 스크린샷과 SQL 결과가 서로 달랐음 — Issue #2
 
-**배운 점**: UPDATE/Delete 쿼리는 WHERE 조건을 최대한 구체적으로 작성해야 실수를 방지할 수 있다.
+- 문제: 과거 실행 결과 이미지와 현재 SQL이 같은 실행에서 만들어졌다는 보장이 없었다.
+- 해결: `scripts/verify_project.py`가 새 DB 하나에서 Query 1~15를 순서대로 실행해 텍스트를 만들고, `scripts/generate_screenshots.py`가 그 텍스트로 이미지를 만든다.
+- 결과: Query 1~15 이미지 15개와 FK 오류 이미지 1개를 다시 만들었다.
+
+### 2.7 Query 5/9/12 분석이 실제 SQL과 달랐음 — Issue #2
+
+- 문제: 문서 일부가 현재 존재하지 않는 고객·주문상세 도메인 또는 다른 조건을 설명했다.
+- 해결: 현재 Query 5의 4-table JOIN, Query 9의 카테고리 집계, Query 12의 최고가 메뉴 서브쿼리 기준으로 문서를 전부 다시 썼다.
+
+### 2.8 ERD의 타입 오기 — Issue #2
+
+- 문제: 주문 시각 타입에 `DATETTME` 오기가 있었다.
+- 해결: 현재 4개 테이블, 컬럼, CHECK 요약, 3개 FK를 읽을 수 있도록 ERD를 재생성했다.
+
+### 2.9 JOIN과 서브쿼리 성능을 단정할 수 없음 — Issue #3
+
+- 문제: 작은 seed 결과만 보고 어느 방법이 항상 빠르다고 말할 수 없다.
+- 해결: 두 SQL의 결과를 정렬된 튜플 집합으로 비교하고 SQLite `EXPLAIN QUERY PLAN`도 함께 저장했다.
+- 결론: 현재 데이터에서는 결과 집합이 같은 5행이다. 성능 우위는 DB, 통계, 인덱스, 데이터 분포에 따라 달라지므로 단정하지 않는다.
+
+### 2.10 인덱스 효과 설명 범위 — Issue #3
+
+- 문제: 실제 측정 없이 일반적인 성능 향상을 확정할 수 없다.
+- 해결: `idx_order_status`를 멱등 생성하고 현재 검증 DB의 실행 계획이 `SEARCH orders USING INDEX idx_order_status (status=?)`인지까지만 확인한다.
+
+## 3. 자동 검증 범위
+
+`python scripts/verify_project.py`는 다음을 검사한다.
+
+- 테이블 4개와 각 PK
+- seed 행 수 10/12/16/25
+- FK 3개 및 `PRAGMA foreign_keys=ON`
+- 핵심 Query 15개 실행
+- 안전 UPDATE/DELETE 영향 행 수
+- JOIN/서브쿼리 결과 집합 동치
+- KPI 3종 실행
+- FK, status CHECK, quantity CHECK, table number UNIQUE 위반 차단
+- 인덱스 존재와 현재 실행 계획
+
+최종 문구는 `B5-1 AUTOMATED VERIFICATION: ALL PASS`다.
+
+## 4. 전체 재생성 명령
+
+```bash
+scripts/check_all.sh
+```
+
+이 명령은 검증 → 스크린샷 → ERD → `git diff --check` 순서로 실행한다.
+
+## 5. 남은 외부 절차
+
+- 외부 동료평가는 구현자가 임의로 작성하지 않는다.
+- 평가자는 `docs/peer-evaluation-request.md`의 안내에 따라 재현하고 의견을 기록한다.
+- 검증 통과 후 PR로 main에 병합한다.
+- learning과 eval 브랜치는 목적에 맞는 문서만 포함하도록 정리한다.

@@ -1,131 +1,109 @@
-# 복잡 쿼리 단계별 분해 분석
+# 복합 쿼리 3개 단계별 분석
 
-## Query 5: 카테고리별 매출 기여 비중 (%)
+이 문서는 현재 `3_queries.sql`의 Query 5, 9, 12를 실제 SQL과 실행 결과에 맞춰 설명한다. 이전 자료에 있던 고객·주문상세 같은 존재하지 않는 도메인은 사용하지 않는다.
 
-**목적**: 각 메뉴 카테고리가 전체 매출에서 차지하는 비중을 계산
+## Query 5: INNER JOIN으로 취소 제외 주문 조회
 
-### 단계별 분해
+### 목적
 
-**Step 1: 각 주문의 금액 계산**
+주문의 FK 숫자 대신 좌석 번호와 메뉴명을 함께 보여 주되 취소 주문은 제외한다.
+
+### SQL
+
 ```sql
--- 주문 수량 × 메뉴 가격 = 개별 주문 금액
-SELECT o.id, o.quantity * m.price as order_amount
+SELECT t.table_number, m.name AS menu_name, o.quantity, o.status, o.order_time
 FROM orders o
-JOIN menus m ON o.menu_id = m.id
-```
-중간 결과: 각 주문의 금액이 계산됨
-
-**Step 2: 카테고리별 매출 합계**
-```sql
--- 메뉴 → 카테고리 조인 후 카테고리별 합계
-SELECT c.name as category, SUM(o.quantity * m.price) as category_sales
-FROM orders o
-JOIN menus m ON o.menu_id = m.id
-JOIN menu_categories c ON m.category_id = c.id
-GROUP BY c.name
-```
-중간 결과: 
-| category | category_sales |
-|----------|---------------|
-| 시그니처 메인 | 285000 |
-| 탕/전골 | 192000 |
-| 사이드 | 78000 |
-
-**Step 3: 전체 매출 대비 비중 계산 (윈도우 함수)**
-```sql
--- 최종: 카테고리 매출 / 전체 매출 * 100
-SELECT 
-    c.name as category,
-    SUM(o.quantity * m.price) as sales,
-    ROUND(SUM(o.quantity * m.price) * 100.0 / 
-        SUM(SUM(o.quantity * m.price)) OVER(), 1) as percentage
-FROM orders o
-JOIN menus m ON o.menu_id = m.id
-JOIN menu_categories c ON m.category_id = c.id
-GROUP BY c.name
-ORDER BY percentage DESC
-```
-최종 결과:
-| category | sales | percentage |
-|----------|-------|------------|
-| 시그니처 메인 | 285000 | 51.3% |
-| 탕/전골 | 192000 | 34.6% |
-| 사이드 | 78000 | 14.1% |
-
-### 핵심 포인트
-- `SUM() OVER()` 윈도우 함수로 전체 매출을 구하면서 동시에 카테고리별 합계도 계산
-- `100.0`을 곱하여 소수점 계산 보장 (정수 나눗셈 방지)
-- `ROUND()`로 소수점 1자리까지 표시
-
----
-
-## Query 9: 좌석 수용 규모별 평균 주문 금액
-
-**목적**: 좌석 크기(2인용/4인용/6인용)에 따른 평균 주문 금액 비교
-
-### 단계별 분해
-
-**Step 1: 각 주문의 금액 계산**
-```sql
-SELECT o.table_id, o.quantity * m.price as amount
-FROM orders o
-JOIN menus m ON o.menu_id = m.id
+INNER JOIN store_tables t ON o.table_id = t.id
+INNER JOIN menus m ON o.menu_id = m.id
+WHERE o.status != 'CANCELLED'
+ORDER BY o.order_time;
 ```
 
-**Step 2: 좌석 정보와 조인 + 좌석 용량별 그룹화**
+### 단계
+
+1. `orders o`를 시작점으로 잡는다.
+2. `store_tables t`를 연결해 실제 `table_number`를 얻는다.
+3. `menus m`을 연결해 메뉴명을 얻는다.
+4. `status != 'CANCELLED'`로 취소 주문을 제외한다.
+5. 오래된 주문부터 시간순으로 정렬한다.
+
+### 실증 결과
+
+seed 25행 중 취소 상태인 주문 ID 25를 제외한 24행이 반환된다. 실제 결과는 `evidence/query_05_result.txt`에 있다.
+
+## Query 9: GROUP BY로 카테고리별 메뉴 통계
+
+### 목적
+
+카테고리별 메뉴 수와 평균 메뉴 가격을 구한다.
+
+### SQL
+
 ```sql
-SELECT 
-    CASE 
-        WHEN t.capacity <= 2 THEN '소형(1-2인)'
-        WHEN t.capacity <= 4 THEN '중형(3-4인)'
-        ELSE '대형(5인+)'
-    END as table_size,
-    COALESCE(AVG(o.quantity * m.price), 0) as avg_amount
-FROM store_tables t
-LEFT JOIN orders o ON o.table_id = t.id
-LEFT JOIN menus m ON o.menu_id = m.id
-GROUP BY table_size
-ORDER BY avg_amount DESC
+SELECT c.name AS category_name,
+       COUNT(m.id) AS menu_count,
+       ROUND(AVG(m.price), 0) AS avg_menu_price
+FROM menu_categories c
+INNER JOIN menus m ON c.id = m.category_id
+GROUP BY c.id, c.name
+ORDER BY menu_count DESC, c.id;
 ```
 
-### 핵심 포인트
-- `CASE WHEN`으로 좌석 용량을 범주화
-- `LEFT JOIN`으로 주문이 없는 좌석도 포함
-- `COALESCE()`로 NULL을 0으로 변환
+### 단계
 
----
+1. 카테고리와 메뉴를 `category_id`로 연결한다.
+2. `GROUP BY c.id, c.name`으로 카테고리별 묶음을 만든다.
+3. `COUNT(m.id)`로 메뉴 개수를 센다.
+4. `AVG(m.price)`로 평균 가격을 계산하고 반올림한다.
+5. 메뉴 수가 많은 카테고리부터 정렬하고, 동률은 카테고리 ID 순으로 정렬한다.
 
-## Query 12: 조리 중인 티켓 비중 (조리 병목 지표)
+### 실증 결과
 
-**목적**: 현재 조리 중인 주문이 전체 주문에서 차지하는 비율
+10개 카테고리가 반환된다. 메뉴 수가 2개인 카테고리는 6개이고 1개인 카테고리는 4개다. `음료/탄산`은 미주문 검증용 `유자차`를 포함해 2개, 평균 3,500원이다. 전체 값은 `evidence/query_09_result.txt`에 있다.
 
-### 단계별 분해
+## Query 12: 서브쿼리로 최고가 메뉴 주문 조회
 
-**Step 1: 상태별 주문 수 집계**
+### 목적
+
+가장 비싼 가격과 같은 모든 메뉴 ID를 먼저 찾고, 그 메뉴가 포함된 주문을 조회한다. 최고가 동률 메뉴가 생겨도 모두 처리할 수 있도록 `=`가 아닌 `IN`을 사용한다.
+
+### SQL
+
 ```sql
-SELECT status, COUNT(*) as count
+SELECT *
 FROM orders
-GROUP BY status
+WHERE menu_id IN (
+    SELECT id
+    FROM menus
+    WHERE price = (SELECT MAX(price) FROM menus)
+)
+ORDER BY id;
 ```
-중간 결과:
-| status | count |
-|--------|-------|
-| COOKING | 8 |
-| SERVED | 15 |
 
-**Step 2: 조리 중 비율 계산**
-```sql
-SELECT 
-    COUNT(CASE WHEN status = 'COOKING' THEN 1 END) as cooking_count,
-    COUNT(*) as total,
-    ROUND(COUNT(CASE WHEN status = 'COOKING' THEN 1 END) * 100.0 / COUNT(*), 1) as cooking_ratio
-FROM orders
+### 단계
+
+1. 가장 안쪽 `SELECT MAX(price)`가 최고 가격 32,000원을 찾는다.
+2. 중간 서브쿼리가 그 가격과 같은 메뉴 ID를 모두 찾는다.
+3. 바깥 쿼리가 해당 메뉴 ID를 가진 주문을 선택한다.
+4. 주문 ID 순서로 정렬한다.
+
+### 실증 결과
+
+현재 최고가 메뉴는 ID 1의 `한우 곱창 전골`이다. 이 메뉴를 참조하는 주문 ID 1, 12, 22의 3행이 반환된다. Query 12는 주문 테이블의 6개 컬럼을 그대로 반환하며 실제 값은 `evidence/query_12_result.txt`에 있다.
+
+## 선택과 트레이드오프
+
+| 선택 | 장점 | 단점 | 이번 결정 |
+|---|---|---|---|
+| 여러 INNER JOIN | 필요한 표시 정보를 한 번에 얻음 | 관계가 늘면 SQL이 길어짐 | Query 5에 사용 |
+| `GROUP BY id, name` | ID 기준을 분명히 하고 이름도 출력 가능 | 묶는 컬럼이 늘어남 | Query 9에 사용 |
+| 최고가 검색에 `IN` | 최고가 동률 메뉴도 안전하게 처리 | 단일 결과만 확실할 때보다 표현이 길음 | Query 12에 사용 |
+| Query 12의 `SELECT *` | 주문 원본 전체를 빠르게 확인 | 스키마가 바뀌면 결과 컬럼도 바뀜 | 과제 조회 예시로만 사용 |
+
+## 재현 방법
+
+```bash
+python scripts/verify_project.py
 ```
-최종 결과:
-| cooking_count | total | cooking_ratio |
-|---------------|-------|---------------|
-| 8 | 23 | 34.8% |
 
-### 핵심 포인트
-- `COUNT(CASE WHEN ... THEN 1 END)` 패턴으로 조건부 집계
-- 전체 주문 대비 조리 중 비율로 병목 정도 파악
+이 명령은 새 SQLite DB에서 SQL을 실행하고 위 결과 파일을 다시 만든다.
