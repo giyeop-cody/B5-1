@@ -106,6 +106,8 @@
 - 해결 1: Git에 기록된 실행 모드와 같도록 네 스크립트에 실행 권한을 다시 적용한 뒤 전체 검사를 통과했다.
 - 증상 2: 새 커밋 직전 로컬 `.git/config`의 작성자 설정이 없어 커밋이 중단됐다.
 - 해결 2: 작성자와 커미터를 `giyeop-cody <cody.giyeop@gmail.com>`으로 다시 설정하고 실제 commit metadata를 확인했다.
+- 증상 3: 기능 브랜치를 push할 때 로컬 `origin` 정보가 없어 `does not appear to be a git repository` 오류가 발생했다.
+- 해결 3: 토큰이 들어가지 않은 공개 HTTPS 원격 주소를 `origin`으로 다시 등록한 뒤 push를 재실행했다.
 
 ## 3. 자동 검증 범위
 
