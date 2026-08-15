@@ -1,306 +1,225 @@
-# B5-1: 정보를 깔끔하게 정리하는 디지털 서랍장 만들기
+# B5-1: 미션 정보를 깔끔하게 정리하는 디지털 서랍장 만들기
 
-## 📌 과제 정보
+순수 SQL로 만든 **스마트 테이블 오더 SQLite 데이터베이스**다. 도메인 선택, ERD, DDL, seed, 핵심 SQL 15개, 무결성 실험, 보너스 분석, 실행 증거를 한 저장소에서 재현한다.
+
+## 과제 정보
 
 | 항목 | 내용 |
-|------|------|
-| **분야** | AI/SW 기초 |
-| **구분** | 데이터베이스와 백엔드 |
-| **학습 시간** | 40시간 |
-| **난이도·필수 여부·과제 번호** | 기존 저장소 기록은 `★☆☆·필수·185012`이나 첨부 PDF 본문에는 표시되지 않아 별도 확인 필요 |
+|---|---|
+| 분야 | AI/SW 기초 |
+| 구분 | 데이터베이스와 백엔드 |
+| 공식 학습 시간 | 40시간 |
+| DBMS | SQLite 3 |
+| 핵심 테이블 | 4개 |
+| 핵심 SQL | 15개 |
+| 보너스 SQL | 5개 |
+| 제한 | 백엔드 프레임워크·View·프로시저·트리거 미사용 |
 
+## 학습 목표
 
-## 🎯 프로젝트 개요
+1. 테이블, 행, 열, PK, FK를 설명한다.
+2. ERD를 보고 SQLite DDL을 작성한다.
+3. NOT NULL·UNIQUE·FK·CHECK로 잘못된 데이터를 막는다.
+4. 기본 조회, JOIN, GROUP BY, 서브쿼리, UPDATE, DELETE, 인덱스를 실행한다.
+5. 설명이 아니라 실제 실행 결과로 구현을 검증한다.
 
-SQL로 나만의 데이터베이스를 설계하고 구축합니다. 도메인 선정, ERD 설계, 테이블 생성, 데이터 입력, 쿼리 작성까지 데이터베이스의 전체 과정을 경험합니다.
+## 데이터 모델
 
-## 🎓 학습 목표
+| 테이블 | 역할 | seed 행 수 |
+|---|---|---:|
+| `menu_categories` | 메뉴 카테고리 | 10 |
+| `store_tables` | 매장 좌석과 수용 인원 | 12 |
+| `menus` | 메뉴명·가격·카테고리 | 16 |
+| `orders` | 좌석별 주문 항목·수량·상태·시각 | 25 |
 
-이 과제를 완료한 뒤, 다음을 설명할 수 있어야 한다:
+관계는 모두 1:N이다.
 
-1. 관계형 데이터베이스의 기본 개념(테이블, 관계, 정규화)을 이해한다
-2. ERD를 설계하고 SQL로 테이블을 생성할 수 있다
-3. JOIN, 집계, 서브쿼리 등 핵심 SQL을 작성할 수 있다
-4. 백엔드 프레임워크 없이 순수 SQL로 데이터를 관리할 수 있다
+- `menu_categories → menus`
+- `store_tables → orders`
+- `menus → orders`
 
-## ⚠️ 제약 사항
+![스마트 테이블 오더 ERD](erd_diagram.png)
 
-- 백엔드 프레임워크 사용 금지 (Spring/Django/Express 등)
-- 로컬에서 실행 가능한 DB만 사용
-- 뷰(View), 프로시저, 트리거 같은 고급 기능은 사용하지 않음
-- 쿼리 15개, 스키마 1개, 데이터 INSERT 1개, 실행 결과 캡처
+상세 설계: [`architecture_design.md`](architecture_design.md)
 
-> **프로젝트 주제**: 스마트 테이블 오더 시스템 데이터베이스 (Table Order Management DB)  
-> **과제 도메인**: 외식 매장(식당/주점) 키오스크 및 태블릿 실시간 주문 데이터베이스  
-> **제출자**: AI/SW 기초 과정 학습자
-
----
-
-## 1. 도메인 선정 배경
-
-과제 가이드에 예시로 제시된 '도서 대여' 주제를 그대로 따라 구현할 수도 있었지만, RDBMS의 핵심 가치인 "수많은 사용자의 동시다발적인 요청에 의해 실시간으로 상태가 변하는 트랜잭션을 안전하고 정확하게 다루는 것"을 학습하기 위해, 피크 타임 매장의 수많은 키오스크에서 주문이 쏟아지고 주방의 조리 상태(COOKING → SERVED)가 시시각각 바뀌는 '스마트 테이블 오더 시스템'을 선택했습니다.
-
----
-
-## 2. 개발 환경
-
-- **데이터베이스 엔진**: SQLite (Version 3.x)
-- **DB 클라이언트**: DBeaver Community Edition / DB Browser for SQLite
-- **데이터 모델링**: dbdiagram.io + Python Matplotlib (ERD 이미지 생성)
-
----
-
-## 3. 제출물 구성
+## 파일 구성
 
 ```text
-├── README.md                 # 프로젝트 개요 (현재 파일)
-├── erd_diagram.png           # ERD 이미지
-├── 1_schema.sql              # 테이블 정의 DDL
-├── 2_data.sql                # 샘플 데이터 INSERT
-├── 3_queries.sql             # 15개 핵심 SQL 쿼리
-├── architecture_design.md    # 스키마 명세서
-├── bonus_report.md           # 보너스 과제 리포트
+.
+├── 1_schema.sql                 # 4개 테이블과 제약조건
+├── 2_data.sql                   # 10/12/16/25행 seed
+├── 3_queries.sql                # 핵심 Query 1~15
+├── 4_bonus_queries.sql          # 동치 비교 2개 + KPI 3개
+├── QUEST.md                     # 공식 PDF 기준 요구사항 정리
+├── architecture_design.md       # 데이터 모델·스키마 설명
+├── bonus_report.md              # 보너스 SQL과 실제 결과 분석
+├── erd_diagram.png              # 현재 스키마 ERD
+├── requirements-dev.txt         # 증거 이미지 생성 의존성
 ├── docs/
-│   ├── development-log.md    # 개발 난관/해결 기록
-│   └── complex-query-analysis.md  # 복잡 쿼리 단계별 분해
+│   ├── complex-query-analysis.md
+│   ├── development-log.md
+│   ├── learning-journal.md
+│   ├── decision-log.md
+│   ├── issue-handling-log.md
+│   └── peer-evaluation-request.md
+├── scripts/
+│   ├── verify_project.py
+│   ├── generate_screenshots.py
+│   ├── generate_erd.py
+│   └── check_all.sh
 └── evidence/
-    ├── screenshots/          # 쿼리 실행 스크린샷 (이미지)
-    │   ├── query_01.png      # 조리 중인 메뉴 목록
-    │   ├── query_05.png      # 카테고리별 매출 비중
-    │   ├── query_09.png      # 좌석 규모별 평균 주문
-    │   ├── query_12.png      # 조리 병목 지표
-    │   └── bonus_fk_error.png # FK 무결성 에러 테스트
-    ├── query_01_result.txt ~ query_15_result.txt  # 텍스트 실행 결과
-    ├── bonus_01_compare_methods.txt   # JOIN vs 서브쿼리 비교
-    ├── bonus_02_fk_error_test.txt     # FK 에러 로그
-    └── bonus_03_kpi_metrics.txt       # KPI 지표 결과
+    ├── query_01_result.txt ~ query_15_result.txt
+    ├── bonus_01_compare_methods.txt
+    ├── bonus_02_fk_error_test.txt
+    ├── bonus_03_kpi_metrics.txt
+    ├── verification_summary.txt
+    └── screenshots/
+        ├── query_01.png ~ query_15.png
+        └── bonus_fk_error.png
 ```
 
----
+## 가장 빠른 검증
 
-## 4. 테이블 구조 (4개 테이블, 3개 1:N 관계)
+Python 3만 있으면 핵심 검증을 실행할 수 있다.
 
-1. **menu_categories** — 메뉴 카테고리 (시그니처 메인, 탕/전골, 사이드)
-2. **store_tables** — 매장 좌석 (1~12번, 2~6인용)
-3. **menus** — 판매 메뉴 (이름, 가격, 카테고리 ID 참조)
-4. **orders** — 주문 기록 (좌석 ID, 메뉴 ID, 수량, 상태, 일시)
-
-### ERD
-![ERD 다이어그램](erd_diagram.png)
-
----
-
-## 5. 쿼리 실행 스크린샷
-
-### Query 1: 조리 중인 메뉴 목록
-![Query 1](evidence/screenshots/query_01.png)
-📎 텍스트 결과: `evidence/query_01_result.txt`
-
-### Query 5: 카테고리별 매출 기여 비중
-![Query 5](evidence/screenshots/query_05.png)
-📎 텍스트 결과: `evidence/query_05_result.txt`
-
-### Query 9: 좌석 수용 규모별 평균 주문 금액
-![Query 9](evidence/screenshots/query_09.png)
-📎 텍스트 결과: `evidence/query_09_result.txt`
-
-### Query 12: 조리 병목 지표
-![Query 12](evidence/screenshots/query_12.png)
-📎 텍스트 결과: `evidence/query_12_result.txt`
-
-### 보너스: 외래키 무결성 에러 테스트
-![FK 에러](evidence/screenshots/bonus_fk_error.png)
-📎 텍스트 결과: `evidence/bonus_02_fk_error_test.txt`
-
----
-
-## 6. 컬럼 타입 선택 근거
-
-| 컬럼 | 타입 | 선택 근거 |
-|------|------|-----------|
-| id | INTEGER | 기본키, 자동 증가, 정수 정렬이 빠름, 저장 공간 효율적 |
-| name | TEXT | 가변 길이 문자열, 메뉴명/카테고리명은 길이가 다양하므로 고정 길이 불필요 |
-| price | INTEGER | 원화 단위, 소수점 불필요, 정수 연산이 빠르고 정확 |
-| capacity | INTEGER | 좌석 수, 정수 비교가 명확, 범위 쿼리(2인 이상)에 적합 |
-| quantity | INTEGER | 주문 수량, 정수, 음수 불가능 |
-| status | TEXT | 'COOKING'/'SERVED' 문자열, 가독성 우선 (ENUM 대신 TEXT 사용) |
-| order_time | DATETIME | SQLite 선언형은 유연하므로 ISO 8601 형식 문자열로 일관되게 입력하고 시간순 정렬 가능 |
-
----
-
-## 7. INNER JOIN vs LEFT JOIN 차이
-
-| 구분 | INNER JOIN | LEFT JOIN |
-|------|-----------|-----------|
-| 동작 | 양쪽 테이블에 매칭되는 행만 반환 | 왼쪽 테이블의 모든 행을 반환, 오른쪽에 매칭이 없으면 NULL |
-| 결과 행 수 | 매칭되는 행만 (적을 수 있음) | 왼쪽 테이블 전체 (더 많을 수 있음) |
-| 사용 시기 | 관계가 확실한 데이터만 필요할 때 | 모든 기준 데이터를 포함해야 할 때 |
-| 본 과제 예 | 조리 중인 주문 조회 (주문이 있는 것만) | 좌석별 평균 주문 금액 (주문이 없는 좌석도 0으로 표시) |
-
-### 예시
-```sql
--- INNER JOIN: 주문이 있는 좌석만
-SELECT t.table_number, COUNT(o.id) as order_count
-FROM store_tables t
-INNER JOIN orders o ON o.table_id = t.id
-GROUP BY t.table_number;
--- 결과: 3, 5, 7, 9번 테이블만 (주문이 있는 좌석)
-
--- LEFT JOIN: 모든 좌석 (주문이 없으면 0)
-SELECT t.table_number, COALESCE(COUNT(o.id), 0) as order_count
-FROM store_tables t
-LEFT JOIN orders o ON o.table_id = t.id
-GROUP BY t.table_number;
--- 결과: 1~12번 테이블 전체 (주문이 없으면 0)
-```
-
----
-
-## 8. 정규화 적용 근거
-
-본 설계는 **제3정규형(3NF)**을 만족합니다:
-
-- **제1정규형(1NF)**: 모든 컬럼이 원자값을 가짐 (하나의 셀에 여러 값이 없음)
-- **제2정규형(2NF)**: 부분적 함수 종속 제거 — 복합키가 없으므로 자동 만족
-- **제3정규형(3NF)**: 이행적 함수 종속 제거 — 메뉴명이 가격에 의존하지 않고, 카테고리명이 메뉴에 의존하지 않음. 각 테이블이 하나의 도메인만 담당
-
-예: orders 테이블에 메뉴명이나 좌석 번호를 직접 저장하지 않고 ID만 참조 → 중복 제거 + 수정 시 한 곳만 변경
-
----
-
-## 9. PK와 FK의 개념적 차이
-
-| 구분 | PK (Primary Key) | FK (Foreign Key) |
-|------|-----------------|-----------------|
-| 역할 | 행의 **정체성** — 각 행을 유일하게 식별 | 테이블 간 **연결** — 다른 테이블의 PK를 참조 |
-| 예시 | orders.id = 1 (1번 주문을 식별) | orders.menu_id = 3 (3번 메뉴를 참조) |
-| 무결성 | 중복 불가, NULL 불가 | 참조하는 PK가 존재해야 함 |
-| 삭제 시 | 해당 행이 사라짐 | 참조하는 행이 있으면 삭제 제한 (FK 제약) |
-
----
-
-## 10. DB와 엑셀의 비교 (무결성 측면)
-
-| 항목 | 엑셀 | 관계형 데이터베이스 |
-|------|------|-------------------|
-| 관계 저장 | 시트 간 VLOOKUP로 수동 연결, 끊어질 수 있음 | FK로 물리적 연결, DB가 보장 |
-| 무결성 | 사용자가 직접 관리, 실수 가능성 높음 | DB가 제약(PK, FK, NOT NULL)으로 자동 보장 |
-| 중복 데이터 | 여러 시트에 같은 정보 복사 → 수정 시 불일치 | 정규화로 한 곳에만 저장 → 수정 시 자동 일관성 |
-| 동시성 | 한 사람만 편집 권장, 덮어쓰기 위험 | 트랜잭션으로 동시 수정 안전 |
-| 예시 | 좌석 번호를 주문 시트에 직접 적음 → 좌석 번호 변경 시 모든 시트 수정 필요 | orders.table_id로 참조 → store_tables만 수정하면 됨 |
-
----
-
-## 11. 복잡 쿼리 단계별 분해
-
-### Query 5: 카테고리별 매출 기여 비중 (%)
-
-**Step 1: 각 주문의 금액 계산**
-```sql
-SELECT o.id, o.quantity * m.price as order_amount
-FROM orders o JOIN menus m ON o.menu_id = m.id
-```
-중간 결과: 각 주문의 금액 계산됨
-
-**Step 2: 카테고리별 매출 합계**
-```sql
-SELECT c.name, SUM(o.quantity * m.price) as category_sales
-FROM orders o JOIN menus m ON o.menu_id = m.id JOIN menu_categories c ON m.category_id = c.id
-GROUP BY c.name
-```
-중간 결과: 시그니처 메인 285000, 탕/전골 192000, 사이드 78000
-
-**Step 3: 전체 매출 대비 비중 (윈도우 함수)**
-```sql
-SELECT c.name, SUM(o.quantity * m.price) as sales,
-  ROUND(SUM(o.quantity * m.price) * 100.0 / SUM(SUM(o.quantity * m.price)) OVER(), 1) as pct
-FROM orders o JOIN menus m ON o.menu_id = m.id JOIN menu_categories c ON m.category_id = c.id
-GROUP BY c.name ORDER BY pct DESC
-```
-최종 결과: 시그니처 메인 51.3%, 탕/전골 34.6%, 사이드 14.1%
-
-### Query 12: 조리 병목 지표
-
-**Step 1: 상태별 주문 수 집계**
-```sql
-SELECT status, COUNT(*) as count FROM orders GROUP BY status
-```
-중간 결과: COOKING 8건, SERVED 15건
-
-**Step 2: 조리 중 비율 계산**
-```sql
-SELECT COUNT(CASE WHEN status='COOKING' THEN 1 END) as cooking,
-  COUNT(*) as total,
-  ROUND(COUNT(CASE WHEN status='COOKING' THEN 1 END)*100.0/COUNT(*), 1) as ratio
-FROM orders
-```
-최종 결과: 8/23 = 34.8%
-
-> 상세 분해: `docs/complex-query-analysis.md` 참조
-
----
-
-## 12. 개발 과정: 난관과 해결
-
-### 난관 1: SQLite 외래키 제약 미동작
-- **문제**: FK를 설정했지만 존재하지 않는 좌석 ID로 주문을 넣어도 에러가 안 남
-- **원인**: SQLite는 기본적으로 FK 제약을 비활성화 상태로 둠
-- **해결**: `PRAGMA foreign_keys = ON;`을 스키마 파일 상단에 추가
-- **배운 점**: DB마다 기본 동작이 다름 (MySQL은 FK 기본 활성화, SQLite는 명시적 활성화 필요)
-
-### 난관 2: 집계 쿼리에서 주문 없는 좌석 누락
-- **문제**: 좌석별 평균 주문 금액을 계산할 때 주문이 없는 좌석이 결과에서 누락됨
-- **원인**: INNER JOIN을 사용해서 주문이 없는 좌석은 조인 결과에서 제외
-- **해결**: LEFT JOIN으로 변경 + COALESCE()로 NULL을 0으로 변환
-- **배운 점**: JOIN 종류 선택이 집계 결과에 큰 영향을 미침
-
-### 난관 3: ERD 이미지 생성
-- **문제**: dbdiagram.io에서 이미지 내보내기가 유료였음
-- **해결**: Python Matplotlib으로 테이블 박스와 관계선을 직접 그려 erd_diagram.png 생성
-- **배운 점**: 도구에 의존하지 않고 직접 구현하는 능력도 중요
-
-### 난관 4: UPDATE 쿼리 안전성
-- **문제**: 조리 상태 변경 시 다른 주문의 상태까지 변경할 위험
-- **해결**: WHERE 조건에 주문 ID와 현재 상태를 모두 명시: `WHERE id = ? AND status = 'COOKING'`
-- **배운 점**: UPDATE/DELETE는 WHERE 조건을 최대한 구체적으로 작성해야 함
-
-> 상세 기록: `docs/development-log.md` 참조
-
----
-
-## 13. 보너스 과제 요약
-
-1. **조인을 두 가지 방식으로 풀기**: INNER JOIN vs 서브쿼리(IN SELECT) 비교
-2. **데이터 정합성 깨뜨려보기**: 존재하지 않는 좌석(9999)으로 주문 → FK 제약 에러 확인
-3. **KPI 지표 3개 도출**: 카테고리별 매출 비중, 좌석 규모별 평균, 조리 병목 비율
-
-> 상세 리포트: `bonus_report.md` 참조
-
----
-
-## 🚀 실행 방법
-
-### 사전 준비
-- SQLite 설치 (또는 Python 내장 sqlite3 사용)
-
-### 스키마 생성 + 데이터 입력
 ```bash
+python scripts/verify_project.py
+```
+
+성공 시 마지막에 다음 문구가 나온다.
+
+```text
+B5-1 AUTOMATED VERIFICATION: ALL PASS
+```
+
+이미지와 ERD까지 모두 다시 만들려면 Pillow를 설치하고 전체 검사를 실행한다.
+
+```bash
+python -m pip install -r requirements-dev.txt
+scripts/check_all.sh
+```
+
+`check_all.sh`는 새 DB 검증 → 결과 이미지 → ERD → `git diff --check` 순서로 실행한다.
+
+## SQLite CLI로 수동 실행
+
+항상 새 DB에서 파일명 순서대로 실행한다.
+
+```bash
+rm -f table_order.db
 sqlite3 table_order.db < 1_schema.sql
 sqlite3 table_order.db < 2_data.sql
+sqlite3 -header -column table_order.db < 3_queries.sql
+sqlite3 -header -column table_order.db < 4_bonus_queries.sql
 ```
 
-### 쿼리 실행
-```bash
-sqlite3 table_order.db < 3_queries.sql
+주의:
+
+- `PRAGMA foreign_keys = ON`은 **SQLite 연결마다** 켜야 한다.
+- SQLite에는 별도 DATETIME 저장 클래스가 없다. 이 프로젝트는 `order_time`에 `YYYY-MM-DD HH:MM:SS` 문자열을 일관되게 넣는다.
+- `3_queries.sql`에는 UPDATE와 DELETE가 있으므로 실행 전 DB를 새로 만드는 것이 재현에 안전하다.
+
+## 핵심 Query 15개
+
+| 번호 | 범주 | 질문 | 결과 증거 |
+|---:|---|---|---|
+| 1 | 기본 조회 | 20,000원 이상 메뉴 상위 5개 | [`txt`](evidence/query_01_result.txt) · [`png`](evidence/screenshots/query_01.png) |
+| 2 | 기본 조회 | 이름에 전골 또는 철판이 있는 메뉴 | [`txt`](evidence/query_02_result.txt) · [`png`](evidence/screenshots/query_02.png) |
+| 3 | 기본 조회 | 현재 COOKING 주문 | [`txt`](evidence/query_03_result.txt) · [`png`](evidence/screenshots/query_03.png) |
+| 4 | 기본 조회 | 6명 이상 좌석 | [`txt`](evidence/query_04_result.txt) · [`png`](evidence/screenshots/query_04.png) |
+| 5 | INNER JOIN | 취소 제외 주문과 좌석·메뉴 | [`txt`](evidence/query_05_result.txt) · [`png`](evidence/screenshots/query_05.png) |
+| 6 | INNER JOIN | 주류 카테고리 3종 메뉴 | [`txt`](evidence/query_06_result.txt) · [`png`](evidence/screenshots/query_06.png) |
+| 7 | LEFT JOIN | 주문 이력이 없는 메뉴 | [`txt`](evidence/query_07_result.txt) · [`png`](evidence/screenshots/query_07.png) |
+| 8 | LEFT JOIN | 주문 이력이 없는 좌석 | [`txt`](evidence/query_08_result.txt) · [`png`](evidence/screenshots/query_08.png) |
+| 9 | 집계 | 카테고리별 메뉴 수·평균 단가 | [`txt`](evidence/query_09_result.txt) · [`png`](evidence/screenshots/query_09.png) |
+| 10 | 집계 | 좌석별 취소 제외 주문 금액 | [`txt`](evidence/query_10_result.txt) · [`png`](evidence/screenshots/query_10.png) |
+| 11 | 집계 | SERVED 판매 수량 3개 이상 메뉴 | [`txt`](evidence/query_11_result.txt) · [`png`](evidence/screenshots/query_11.png) |
+| 12 | 서브쿼리 | 최고가와 같은 메뉴의 주문 | [`txt`](evidence/query_12_result.txt) · [`png`](evidence/screenshots/query_12.png) |
+| 13 | 수정 | COOKING인 18번 주문만 SERVED 변경 | [`txt`](evidence/query_13_result.txt) · [`png`](evidence/screenshots/query_13.png) |
+| 14 | 삭제 | CANCELLED인 25번 주문만 삭제 | [`txt`](evidence/query_14_result.txt) · [`png`](evidence/screenshots/query_14.png) |
+| 15 | 인덱스 | `orders(status)` 후보 인덱스 생성 | [`txt`](evidence/query_15_result.txt) · [`png`](evidence/screenshots/query_15.png) |
+
+Query 13과 14는 ID만 확인하지 않고 예상 현재 상태도 함께 확인한다.
+
+```sql
+WHERE id = 18 AND status = 'COOKING'
+WHERE id = 25 AND status = 'CANCELLED'
 ```
 
----
+## 무결성 규칙과 실증
 
-## 🧪 테스트 방법
+| 규칙 | 막는 잘못된 입력 | 자동 검증 결과 |
+|---|---|---|
+| PK | 중복 ID | PASS |
+| NOT NULL | 필수값 누락 | 스키마 검사 PASS |
+| UNIQUE | 중복 카테고리명·좌석 번호 | 중복 좌석 번호 차단 PASS |
+| FK 3개 | 없는 카테고리·좌석·메뉴 참조 | 없는 좌석 참조 차단 PASS |
+| CHECK | 음수 가격·좌석 번호·수용 인원·수량 | 음수 수량 차단 PASS |
+| CHECK | COOKING/SERVED/CANCELLED 외 상태 | 잘못된 상태 차단 PASS |
 
-### 수동 테스트
-1. `1_schema.sql` 실행 → 4개 테이블 생성 확인
-2. `2_data.sql` 실행 → 각 테이블 10행 이상 확인
-3. 15개 쿼리 실행 → 각 결과 캡처
-4. JOIN 쿼리 → 연결된 데이터 조회 확인
-5. GROUP BY 쿼리 → 집계 결과 확인
+![FK 무결성 오류 실증](evidence/screenshots/bonus_fk_error.png)
+
+## 보너스 결과
+
+1. **JOIN과 서브쿼리 비교**: 같은 질문을 두 방식으로 실행하고 5개 행의 값까지 비교해 집합 동치 PASS
+2. **무결성 깨뜨리기**: FK·CHECK·UNIQUE 위반이 실제로 차단되는지 확인
+3. **KPI 3종**:
+   - 카테고리별 매출 비중 10행
+   - 좌석 수용 인원별 물리 테이블당 평균 매출 4행
+   - 주방 혼잡도 20.8%
+
+`EXPLAIN QUERY PLAN`은 현재 seed와 SQLite 실행 계획만 설명한다. 특정 방식이 언제나 더 빠르다고 단정하지 않는다.
+
+상세 결과: [`bonus_report.md`](bonus_report.md)
+
+## 컬럼 타입을 이렇게 고른 이유
+
+| 값 | SQLite 선언 | 이유 |
+|---|---|---|
+| ID·가격·수량·수용 인원 | INTEGER | 원화와 개수는 정수로 계산 |
+| 이름·상태 | TEXT | 사람이 읽는 문자열 |
+| 주문 시각 | DATETIME 선언 | ISO 형식 문자열을 일관되게 저장하기 위한 의도 표시 |
+
+SQLite의 타입 선언은 다른 DBMS보다 유연하므로, 올바른 값 범위는 CHECK와 일관된 입력 형식으로 보완한다.
+
+## INNER JOIN과 LEFT JOIN
+
+- `INNER JOIN`: 양쪽에 연결되는 행만 반환한다. Query 5·6에서 사용한다.
+- `LEFT JOIN`: 왼쪽 행은 모두 남기고 오른쪽에 연결이 없으면 NULL로 둔다. Query 7·8에서 `WHERE 오른쪽.id IS NULL`과 함께 미매칭 행을 찾는다.
+
+현재 seed에서:
+
+- Query 7: 미주문 메뉴 `유자차` 1개
+- Query 8: 미주문 좌석 2번, 11번, 12번 3개
+
+## 정규화와 PK/FK
+
+- 카테고리명은 `menu_categories` 한 곳에 저장한다.
+- 좌석 정보는 `store_tables` 한 곳에 저장한다.
+- 주문에는 메뉴명·좌석 번호를 복사하지 않고 FK를 저장한다.
+- PK는 한 행의 고유한 신분증이고, FK는 다른 테이블 행을 가리키는 연결 번호다.
+
+이 구조는 중복 수정을 줄이고 존재하지 않는 부모를 참조하는 실수를 막는다.
+
+## 검증된 현재 결과
+
+- 테이블: 4개
+- seed: 10/12/16/25행
+- PK: 모든 테이블 PASS
+- FK: 3개, 1:N 관계 3개 PASS
+- 핵심 SQL: 15개 모두 실행 PASS
+- 보너스 SQL: 5개 모두 실행 PASS
+- 자동 검증: `B5-1 AUTOMATED VERIFICATION: ALL PASS`
+
+검증 요약 원본: [`evidence/verification_summary.txt`](evidence/verification_summary.txt)
+
+## 학습·선택·문제 기록
+
+- 복합 쿼리 학습: [`docs/complex-query-analysis.md`](docs/complex-query-analysis.md)
+- 개발·트러블슈팅: [`docs/development-log.md`](docs/development-log.md)
+- 단계별 학습 일지: [`docs/learning-journal.md`](docs/learning-journal.md)
+- 선택지와 트레이드오프: [`docs/decision-log.md`](docs/decision-log.md)
+- GitHub Issue 처리: [`docs/issue-handling-log.md`](docs/issue-handling-log.md)
+- 외부 동료평가 요청서: [`docs/peer-evaluation-request.md`](docs/peer-evaluation-request.md)
+
+외부 동료평가 결과는 평가자가 직접 검증한 뒤 기록한다. 구현자가 실제 평가를 받은 것처럼 임의 작성하지 않는다.
