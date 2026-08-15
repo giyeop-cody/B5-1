@@ -67,4 +67,4 @@ rewrite 이후 추가한 문서·브랜치 동기화 commit도 처음부터 목�
 - [x] 전체 브랜치 force push
 - [x] GitHub API의 기존 이메일 0개
 - [x] GitHub API의 commit author/committer 계정 연결 확인
-- [ ] PR 병합 후 fresh clone에서 전체 검사 PASS
+- [x] PR #5 병합 후 `main@708ff2c` fresh clone 전체 검사 PASS
