@@ -46,11 +46,25 @@ legacy eval 이력은 새 eval tip에 `ours` merge로 연결해 파일은 최신
 
 bundle은 별도 보관 자료라 Git 저장소 안에 넣지 않는다.
 
-## 남은 원격 검증
+## 원격 반영 및 API 검증
 
-로컬 rewrite와 매핑은 완료했다. 다음 항목은 GitHub 인증 후 force push와 PR 병합이 끝나면 갱신한다.
+2026-08-15에 기존 원격 `main`·`eval`은 예상 이전 SHA를 지정한 `--force-with-lease`로 갱신하고, `fix/mission-audit-remediation`·`learning`을 새로 push했다.
 
-- [ ] 전체 브랜치 force push
-- [ ] GitHub API의 기존 이메일 0개
-- [ ] GitHub API의 commit author 계정 연결 확인
-- [ ] fresh clone에서 전체 검사 PASS
+| 원격 브랜치 | push 후 SHA |
+|---|---|
+| main | `d4c808a1037f7392e50a0abad7348e24052b3337` |
+| fix/mission-audit-remediation | `044ce65309de3dae4208c7194630c31d1f45c21a` |
+| learning | `6e32b8a1097d4aa300ed9fcda40bd49ccbe4242c` |
+| eval | `085d578de744c226f2214df2acc5c82fc05b1a70` |
+
+GitHub Commit API로 네 브랜치에서 도달 가능한 35개 고유 commit을 합쳐 검사했다.
+
+- target이 아닌 author/committer 이메일: 0개
+- `giyeop-cody` 계정에 연결되지 않은 author/committer 역할: 0개
+
+rewrite 이후 추가한 문서·브랜치 동기화 commit도 처음부터 목표 이메일로 작성했기 때문에 31개 rewrite 매핑에는 들어가지 않지만 API 검사 범위에는 들어간다.
+
+- [x] 전체 브랜치 force push
+- [x] GitHub API의 기존 이메일 0개
+- [x] GitHub API의 commit author/committer 계정 연결 확인
+- [x] PR #5 병합 후 `main@708ff2c` fresh clone 전체 검사 PASS
