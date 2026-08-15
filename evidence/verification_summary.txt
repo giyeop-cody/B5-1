@@ -1,0 +1,37 @@
+B5-1 AUTOMATED VERIFICATION: ALL PASS
+SQLite version=3.46.1
+database=/tmp/b5-1-q0mkjpth/table_order.db
+
+tables=4 PASS: menu_categories, menus, orders, store_tables
+menu_categories rows=10 PASS
+menu_categories PK=1 PASS
+store_tables rows=12 PASS
+store_tables PK=1 PASS
+menus rows=16 PASS
+menus PK=1 PASS
+orders rows=25 PASS
+orders PK=1 PASS
+foreign_keys=3 PASS
+PRAGMA foreign_keys=ON PASS
+core_queries=15 PASS
+Q01 PASS rows=4
+Q02 PASS rows=2
+Q03 PASS rows=5
+Q04 PASS rows=3
+Q05 PASS rows=24
+Q06 PASS rows=4
+Q07 PASS rows=1
+Q08 PASS rows=3
+Q09 PASS rows=10
+Q10 PASS rows=9
+Q11 PASS rows=2
+Q12 PASS rows=3
+Q13 PASS rows=1
+Q14 PASS rows=1
+Q15 PASS rows=1
+FK 없는 좌석 참조 차단: PASS
+허용되지 않은 status 차단: PASS
+음수 quantity 차단: PASS
+중복 table_number 차단: PASS
+bonus_join_subquery_equality PASS
+bonus_kpi_3 PASS

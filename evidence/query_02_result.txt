@@ -1,8 +1,14 @@
--- [기본조회 2] 메뉴명에 '전골' 또는 '철판' 키워드가 포함된 메인 요리들의 메뉴명과 가격 조회
-SELECT name, price FROM menus WHERE name LIKE '%전골%' OR name LIKE '%철판%';
+=== Q02 [기본조회] 이름에 '전골' 또는 '철판'이 포함된 메뉴를 조회한다. ===
 
-=== EXECUTION RESULT ===
+SQL
+-- [Q02][기본조회] 이름에 '전골' 또는 '철판'이 포함된 메뉴를 조회한다.
+SELECT name, price
+FROM menus
+WHERE name LIKE '%전골%' OR name LIKE '%철판%'
+ORDER BY id;
+
+RESULT
 name	price
---------------------------------------------------
+----------------------------------------
 한우 곱창 전골	32000
 매콤 철판 쭈꾸미	24000

@@ -1,5 +1,14 @@
--- [삭제 1] 취소 처리된('CANCELLED') 25번 주문 건을 DB 트랜잭션 이력에서 삭제
-DELETE FROM orders WHERE id = 25;
+=== Q14 [삭제] 25번 주문이 CANCELLED 상태일 때만 삭제한다. ===
 
-=== EXECUTION RESULT ===
-SQL Execution Success. Rows affected: 1
+SQL
+-- [Q14][삭제] 25번 주문이 CANCELLED 상태일 때만 삭제한다.
+DELETE FROM orders
+WHERE id = 25 AND status = 'CANCELLED';
+
+RESULT
+rows_affected
+----------------------------------------
+1
+
+VERIFICATION
+orders.id=25 remaining=0 PASS

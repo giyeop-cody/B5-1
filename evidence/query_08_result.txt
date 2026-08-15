@@ -1,9 +1,16 @@
--- [조인 4 - LEFT] 전체 매장 좌석을 기준으로 주문 내역을 결합하여, 현재 주문 내역이 전혀 없는 빈 테이블(공석) 탐색
-SELECT t.table_number, t.capacity FROM store_tables t LEFT JOIN orders o ON t.id = o.table_id WHERE o.id IS NULL;
+=== Q08 [LEFT JOIN] 전체 샘플 기간에 주문 이력이 한 번도 없는 좌석을 찾는다. ===
 
-=== EXECUTION RESULT ===
+SQL
+-- [Q08][LEFT JOIN] 전체 샘플 기간에 주문 이력이 한 번도 없는 좌석을 찾는다.
+SELECT t.table_number, t.capacity
+FROM store_tables t
+LEFT JOIN orders o ON t.id = o.table_id
+WHERE o.id IS NULL
+ORDER BY t.table_number;
+
+RESULT
 table_number	capacity
---------------------------------------------------
+----------------------------------------
 2	2
 11	2
 12	4

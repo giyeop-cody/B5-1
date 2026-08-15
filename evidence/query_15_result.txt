@@ -1,5 +1,14 @@
--- [인덱스 적용 이유]: 실시간 주방 디스플레이에서 조리 대기 중인 상태의 주문을 주기적으로 필터링 조회하므로 Full Scan 방지를 위해 부여함
-CREATE INDEX idx_order_status ON orders (status);
+=== Q15 [인덱스] 반복되는 status 필터의 후보 인덱스를 만들고 효과는 실행 계획으로 확인한다. ===
 
-=== EXECUTION RESULT ===
-SQL Execution Success. Rows affected: -1
+SQL
+-- [Q15][인덱스] 반복되는 status 필터의 후보 인덱스를 만들고 효과는 실행 계획으로 확인한다.
+CREATE INDEX IF NOT EXISTS idx_order_status ON orders (status);
+
+RESULT
+rows_affected
+----------------------------------------
+-1
+
+VERIFICATION
+idx_order_status exists PASS
+query_plan=SEARCH orders USING INDEX idx_order_status (status=?)

@@ -1,9 +1,17 @@
--- [조인 1 - INNER] 주문 내역에 대해 테이블 번호와 주문된 메뉴명, 수량, 주문 상태를 결합하여 실시간 주방 모니터 조회
-SELECT t.table_number, m.name AS menu_name, o.quantity, o.status, o.order_time FROM orders o INNER JOIN store_tables t ON o.table_id = t.id INNER JOIN menus m ON o.menu_id = m.id WHERE o.status != 'CANCELLED';
+=== Q05 [INNER JOIN] 취소되지 않은 주문에 좌석 번호와 메뉴 정보를 결합한다. ===
 
-=== EXECUTION RESULT ===
+SQL
+-- [Q05][INNER JOIN] 취소되지 않은 주문에 좌석 번호와 메뉴 정보를 결합한다.
+SELECT t.table_number, m.name AS menu_name, o.quantity, o.status, o.order_time
+FROM orders o
+INNER JOIN store_tables t ON o.table_id = t.id
+INNER JOIN menus m ON o.menu_id = m.id
+WHERE o.status != 'CANCELLED'
+ORDER BY o.order_time;
+
+RESULT
 table_number	menu_name	quantity	status	order_time
---------------------------------------------------
+-----------------------------------------------------------------
 3	한우 곱창 전골	1	SERVED	2026-06-24 18:10:00
 3	참이슬 후레쉬	2	SERVED	2026-06-24 18:11:00
 3	테라 생맥주 500ml	1	SERVED	2026-06-24 18:11:30
