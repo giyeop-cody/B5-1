@@ -7,6 +7,7 @@ import argparse
 import re
 import sqlite3
 import tempfile
+from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -20,6 +21,29 @@ EXPECTED_MINIMUM_ROWS = {
     "menus": 10,
     "orders": 10,
 }
+EXPECTED_COLUMN_TYPES = {
+    "menu_categories": {"id": "INTEGER", "name": "TEXT"},
+    "store_tables": {"id": "INTEGER", "table_number": "INTEGER", "capacity": "INTEGER"},
+    "menus": {"id": "INTEGER", "name": "TEXT", "price": "INTEGER", "category_id": "INTEGER"},
+    "orders": {
+        "id": "INTEGER",
+        "table_id": "INTEGER",
+        "menu_id": "INTEGER",
+        "quantity": "INTEGER",
+        "order_time": "DATETIME",
+        "status": "TEXT",
+    },
+}
+EXPECTED_CORE_CATEGORIES = Counter({
+    "기본조회": 4,
+    "INNER JOIN": 2,
+    "LEFT JOIN": 2,
+    "집계": 3,
+    "서브쿼리": 1,
+    "수정": 1,
+    "삭제": 1,
+    "인덱스": 1,
+})
 
 
 @dataclass
@@ -98,14 +122,33 @@ def verify_schema(connection: sqlite3.Connection) -> list[str]:
     assert tables == expected_tables, (tables, expected_tables)
     checks.append(f"tables={len(tables)} PASS: {', '.join(tables)}")
 
+    not_null_count = 0
+    unique_count = 0
+    column_count = 0
     for table, minimum in EXPECTED_MINIMUM_ROWS.items():
         count = connection.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
         assert count >= minimum, f"{table}: {count} < {minimum}"
         checks.append(f"{table} rows={count} PASS")
 
-        pk_count = sum(row[5] > 0 for row in connection.execute(f"PRAGMA table_info({table})"))
+        table_info = connection.execute(f"PRAGMA table_info({table})").fetchall()
+        pk_count = sum(row["pk"] > 0 for row in table_info)
         assert pk_count >= 1, f"{table} PK 없음"
         checks.append(f"{table} PK={pk_count} PASS")
+
+        actual_types = {row["name"]: row["type"].upper() for row in table_info}
+        assert actual_types == EXPECTED_COLUMN_TYPES[table], (table, actual_types)
+        column_count += len(actual_types)
+        not_null_count += sum(row["notnull"] == 1 for row in table_info)
+
+        indexes = connection.execute(f"PRAGMA index_list({table})").fetchall()
+        unique_count += sum(row["unique"] == 1 for row in indexes)
+
+    assert column_count == 15
+    checks.append("column_names_and_types=15 PASS")
+    assert not_null_count >= 1
+    checks.append(f"NOT_NULL_columns={not_null_count} PASS")
+    assert unique_count >= 1
+    checks.append(f"UNIQUE_indexes={unique_count} PASS")
 
     fk_count = sum(
         len(connection.execute(f"PRAGMA foreign_key_list({table})").fetchall())
@@ -118,9 +161,27 @@ def verify_schema(connection: sqlite3.Connection) -> list[str]:
     return checks
 
 
+def verify_rubric_distribution(cases: list[SqlCase]) -> list[str]:
+    """첨부 평가표가 요구하는 15개 SQL의 번호·설명·범주 수량을 확인한다."""
+    assert [case.number for case in cases] == [f"Q{number:02d}" for number in range(1, 16)]
+    assert all(case.description.strip() for case in cases), "모든 쿼리에 한 줄 설명이 필요합니다."
+
+    categories = Counter(case.category for case in cases)
+    assert categories == EXPECTED_CORE_CATEGORIES, (categories, EXPECTED_CORE_CATEGORIES)
+    join_count = categories["INNER JOIN"] + categories["LEFT JOIN"]
+    assert join_count == 4
+    return [
+        "rubric_query_numbers_and_descriptions=15 PASS",
+        "rubric_query_distribution="
+        f"basic:{categories['기본조회']},join:{join_count},aggregate:{categories['집계']},"
+        f"subquery:{categories['서브쿼리']},mutation:{categories['수정'] + categories['삭제']},"
+        f"index:{categories['인덱스']} PASS",
+    ]
+
+
 def execute_core(connection: sqlite3.Connection, cases: list[SqlCase]) -> list[str]:
     assert len(cases) == 15, f"핵심 SQL은 15개여야 합니다: {len(cases)}"
-    checks = ["core_queries=15 PASS"]
+    checks = ["core_queries=15 PASS", *verify_rubric_distribution(cases)]
     for case in cases:
         cursor = connection.execute(case.sql)
         columns: list[str]
@@ -153,6 +214,10 @@ def execute_core(connection: sqlite3.Connection, cases: list[SqlCase]) -> list[s
 
         write_result(case, columns, rows, extra)
         checks.append(f"{case.number} PASS rows={len(rows)}")
+
+    expected_texts = {EVIDENCE / f"query_{number:02d}_result.txt" for number in range(1, 16)}
+    assert all(path.is_file() and path.stat().st_size > 0 for path in expected_texts)
+    checks.append("core_text_evidence=15 PASS")
     connection.commit()
     return checks
 
