@@ -1,9 +1,16 @@
--- [기본조회 1] 단가가 20,000원 이상인 프리미엄 요리 메뉴들의 메뉴명과 가격을 가격이 높은 순으로 정렬하여 상위 5개 조회
-SELECT name, price FROM menus WHERE price >= 20000 ORDER BY price DESC LIMIT 5;
+=== Q01 [기본조회] 20,000원 이상 메뉴를 높은 가격순으로 최대 5개 조회한다. ===
 
-=== EXECUTION RESULT ===
+SQL
+-- [Q01][기본조회] 20,000원 이상 메뉴를 높은 가격순으로 최대 5개 조회한다.
+SELECT name, price
+FROM menus
+WHERE price >= 20000
+ORDER BY price DESC
+LIMIT 5;
+
+RESULT
 name	price
---------------------------------------------------
+----------------------------------------
 한우 곱창 전골	32000
 화요 25	28000
 매콤 철판 쭈꾸미	24000

@@ -1,112 +1,183 @@
-# 보너스 과제 심화 분석 리포트
+# B5-1 보너스 과제 실증 보고서
 
-> **도메인 주제**: 스마트 테이블 오더 시스템 데이터베이스 (Table Order DB)  
-> **리포트 범위**: 조인 vs 서브쿼리 문법 비교, 외래키 위반 에러 테스트, 외식업 매장 운영 핵심 KPI 도출
+보너스도 이번 수정 범위에 포함했다. 실행 SQL은 `4_bonus_queries.sql`, 실제 결과는 `evidence/bonus_*.txt`에 있다.
 
----
+## 1. 같은 질문을 JOIN과 서브쿼리로 해결
 
-## 1. 조인 1개를 두 가지 방식으로 풀기 및 구조 비교
+### 질문
 
-### 비즈니스 요구사항
-> *"현재 주방에서 조리 중('COOKING')인 주문에 포함된 '메뉴 이름'과 '가격'을 조회하시오."*
+2025-06-03 18:00:00부터 20:00:00까지 주문된 메뉴의 중복 없는 목록은 무엇인가?
 
-#### 방식 A. INNER JOIN을 활용한 해결
+### JOIN 방식
+
 ```sql
-SELECT m.name, m.price
+SELECT DISTINCT m.id, m.name, m.price
 FROM menus m
 INNER JOIN orders o ON m.id = o.menu_id
-WHERE o.status = 'COOKING';
+WHERE o.order_time BETWEEN '2025-06-03 18:00:00' AND '2025-06-03 20:00:00'
+ORDER BY m.id;
 ```
 
-#### 방식 B. WHERE 절 서브쿼리(IN)를 활용한 해결
-```sql
-SELECT name, price
-FROM menus
-WHERE id IN (
-    SELECT menu_id 
-    FROM orders 
-    WHERE status = 'COOKING'
-);
-```
-
-### 작성 관점 및 실행 차이 비교
-1. **작성 구조 관점**: `JOIN` 방식은 메뉴 정보 테이블과 주문 테이블을 수평적으로 나란히 연결하여 두 테이블의 데이터를 동시에 검증할 때 가독성이 좋습니다. 반면 서브쿼리 방식은 최종적으로 조회하고자 하는 대상 테이블(`menus`)을 명확히 고정하고, 조건 필터링에 필요한 테이블(`orders`)을 괄호 안으로 분리하므로 쿼리의 목적어 대상이 더 뚜렷하게 보입니다.
-2. **실행 엔진 관점**: SQLite 및 최신 RDBMS의 쿼리 최적화 기능(Optimizer)은 `IN (SELECT...)` 형태의 서브쿼리를 내부적으로 `JOIN` 실행 계획으로 재정렬하여 처리합니다. 따라서 두 쿼리의 실제 데이터 검색 속도는 동일합니다. 다만 실무에서 주문 기록이 수백만 건 이상 쌓였을 때는 서브쿼리로 필터링 대상을 먼저 좁힌 뒤 메뉴 테이블을 조회하는 것이 메모리 부하를 줄이는 데 도움을 줄 수 있습니다.
-
----
-
-## 2. 데이터 정합성(무결성) 위반 실험 기록
-
-### 실험 시도
-매장에 등록되지 않은 가상의 테이블 좌석 번호 ID(`9999`)로 강제 주문 입력을 시도했습니다.
+### 서브쿼리 방식
 
 ```sql
-INSERT INTO orders (id, table_id, menu_id, quantity, order_time, status) 
-VALUES (999, 9999, 1, 2, '2026-06-24 21:00:00', 'COOKING');
+SELECT m.id, m.name, m.price
+FROM menus m
+WHERE m.id IN (
+    SELECT o.menu_id
+    FROM orders o
+    WHERE o.order_time BETWEEN '2025-06-03 18:00:00' AND '2025-06-03 20:00:00'
+)
+ORDER BY m.id;
 ```
 
-### 실행 결과 (에러 메시지 발생)
+### 실제 동치 검증
+
+두 결과를 `[(id, name, price), ...]` 튜플 목록으로 만든 뒤 정렬하여 비교했다.
+
+- JOIN 결과: 5행
+- 서브쿼리 결과: 5행
+- 집합 비교: PASS
+- 메뉴 ID: 1, 4, 5, 9, 10
+
+따라서 **현재 질문과 데이터에서는 실제 결과 집합이 같다.** 단지 행 수만 같은 것이 아니라 각 행의 값까지 비교했다.
+
+## 2. EXPLAIN QUERY PLAN 범위의 성능 설명
+
+현재 검증 DB에서 저장한 계획은 다음과 같다.
+
 ```text
-sqlite3.IntegrityError: FOREIGN KEY constraint failed
+JOIN:
+SCAN o
+SEARCH m USING INTEGER PRIMARY KEY (rowid=?)
+USE TEMP B-TREE FOR DISTINCT
+USE TEMP B-TREE FOR ORDER BY
+
+SUBQUERY:
+SEARCH m USING INTEGER PRIMARY KEY (rowid=?)
+LIST SUBQUERY 1
+SCAN o
 ```
 
-### 차단 원인 및 정상화 방법
-* **차단 원인**: `orders.table_id` 컬럼에 설정된 `FOREIGN KEY REFERENCES store_tables(id)` 참조 규칙 때문입니다. 데이터베이스 엔진은 데이터를 입력하기 직전 부모 테이블인 `store_tables`에 `9999`번 좌석이 존재하는지 먼저 확인하며, 존재하지 않을 경우 정산 오류를 막기 위해 입력을 강제 거부하고 Rollback 처리합니다.
-* **해결 방법**: 
-  1. 매장에 신규 테이블이 추가된 것이 맞다면 `store_tables` 테이블에 `id = 9999` 좌석을 먼저 `INSERT` 하거나,
-  2. 통신 오류로 잘못 입력된 좌석 ID를 기존에 존재하는 정상 좌석 범위(`id = 1 ~ 12`)로 정정한 후 다시 입력해야 합니다.
+해석:
 
----
+- JOIN 방식은 `orders`를 읽고 PK로 `menus`를 찾으며 DISTINCT와 정렬용 임시 B-Tree를 사용했다.
+- 서브쿼리 방식은 먼저 주문의 메뉴 ID 목록을 만들고 `menus`의 PK를 찾았다.
+- seed가 작고 실행 시간 벤치마크를 하지 않았으므로 어느 방식이 항상 더 빠르다고 결론 내리지 않는다.
+- 실제 성능은 데이터 크기와 분포, 통계, 인덱스, SQLite 버전에 따라 달라질 수 있다.
 
-## 3. 매장 운영 관점 핵심 KPI 지표 도출 리포트
+선택 기준:
 
-스마트 테이블 오더 데이터베이스에서 추출하여 매장 매출 관리와 주방 운영 효율화를 돕는 **핵심 지표(KPI) 3개**를 설계했습니다.
+| 방식 | 장점 | 주의점 |
+|---|---|---|
+| JOIN | 양쪽 테이블 컬럼을 함께 꺼내기 쉽다 | 중복 때문에 DISTINCT가 필요할 수 있다 |
+| 서브쿼리 | “해당 목록에 포함되는가”라는 질문을 그대로 표현하기 쉽다 | 복잡한 상관 서브쿼리는 별도 계획 확인이 필요하다 |
 
-### ① [KPI 1] 메뉴 카테고리별 매출 비중 분석 (Revenue Share by Category)
-* **정의**: 매장의 카테고리별 총매출액과 전체 매출에서 차지하는 비중(%). 어떤 카테고리 상품이 주력 매출원인지 파악하는 지표.
-* **SQL 쿼리**:
-  ```sql
-  SELECT 
-      c.name AS category_name,
-      SUM(m.price * o.quantity) AS category_revenue,
-      ROUND(SUM(m.price * o.quantity) * 100.0 / (
-          SELECT SUM(m2.price * o2.quantity) 
-          FROM orders o2 
-          JOIN menus m2 ON o2.menu_id = m2.id 
-          WHERE o2.status != 'CANCELLED'
-      ), 1) AS revenue_share_percentage
-  FROM menu_categories c
-  INNER JOIN menus m ON c.id = m.category_id
-  INNER JOIN orders o ON m.id = o.menu_id
-  WHERE o.status != 'CANCELLED'
-  GROUP BY c.id, c.name
-  ORDER BY category_revenue DESC;
-  ```
+## 3. KPI 1 — 카테고리별 매출 비중
 
-### ② [KPI 2] 좌석 인원수 규모별 평균 주문 금액 (Average Spend per Table Capacity)
-* **정의**: 2인석, 4인석, 단체석 등 테이블 수용 규모에 따른 평균 테이블 정산 금액. 효율적인 매장 좌석 배치 구성을 위한 지표.
-* **SQL 쿼리**:
-  ```sql
-  SELECT 
-      t.capacity || '인석' AS table_type,
-      COUNT(DISTINCT t.id) AS total_tables_of_type,
-      COUNT(o.id) AS total_order_count,
-      ROUND(SUM(m.price * o.quantity) * 1.0 / COUNT(DISTINCT t.id), 0) AS avg_revenue_per_table
-  FROM store_tables t
-  LEFT JOIN orders o ON t.id = o.table_id AND o.status != 'CANCELLED'
-  LEFT JOIN menus m ON o.menu_id = m.id
-  GROUP BY t.capacity
-  ORDER BY avg_revenue_per_table DESC;
-  ```
+```sql
+WITH category_revenue AS (
+    SELECT c.id,
+           c.name,
+           SUM(CASE WHEN o.status <> 'CANCELLED'
+                    THEN m.price * o.quantity ELSE 0 END) AS revenue
+    FROM menu_categories c
+    LEFT JOIN menus m ON m.category_id = c.id
+    LEFT JOIN orders o ON o.menu_id = m.id
+    GROUP BY c.id, c.name
+),
+total_revenue AS (
+    SELECT SUM(revenue) AS total FROM category_revenue
+)
+SELECT cr.name AS category_name,
+       cr.revenue AS category_revenue,
+       ROUND(cr.revenue * 100.0 / NULLIF(tr.total, 0), 1)
+           AS revenue_share_percentage
+FROM category_revenue cr
+CROSS JOIN total_revenue tr
+ORDER BY category_revenue DESC, cr.id;
+```
 
-### ③ [KPI 3] 주방 조리 대기 집중도 분석 (Kitchen Bottleneck Index)
-* **정의**: 전체 활성 주문 중 현재 주방에서 조리 중(`COOKING`)인 티켓이 차지하는 비율. 주방 인력 추가 투입 필요성을 판단하는 지표.
-* **SQL 쿼리**:
-  ```sql
-  SELECT 
-      COUNT(*) AS total_live_orders,
-      SUM(CASE WHEN status = 'COOKING' THEN 1 ELSE 0 END) AS cooking_orders,
-      ROUND(SUM(CASE WHEN status = 'COOKING' THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 1) AS kitchen_congestion_rate
-  FROM orders
-  WHERE status != 'CANCELLED';
-  ```
+### 결과 요약
+
+10개 카테고리의 매출과 비중을 반환한다. 상위 3개는 다음과 같다.
+
+| 카테고리 | 매출 | 비중 |
+|---|---:|---:|
+| 탕/전골 요리 | 128,000원 | 27.6% |
+| 시그니처 메인 | 102,000원 | 22.0% |
+| 소주/맥주 | 85,000원 | 18.3% |
+
+취소 주문은 매출에서 제외한다. 전체 결과는 `evidence/bonus_03_kpi_metrics.txt`에 있다.
+
+## 4. KPI 2 — 좌석 수용 인원별 물리 테이블당 평균 매출
+
+```sql
+WITH table_revenue AS (
+    SELECT st.id,
+           st.capacity,
+           SUM(CASE WHEN o.status <> 'CANCELLED'
+                    THEN m.price * o.quantity ELSE 0 END) AS revenue
+    FROM store_tables st
+    LEFT JOIN orders o ON o.table_id = st.id
+    LEFT JOIN menus m ON m.id = o.menu_id
+    GROUP BY st.id, st.capacity
+)
+SELECT capacity,
+       COUNT(*) AS table_count,
+       ROUND(AVG(revenue), 0) AS avg_revenue_per_table
+FROM table_revenue
+GROUP BY capacity
+ORDER BY capacity;
+```
+
+### 결과
+
+| 수용 인원 | 물리 테이블 수 | 테이블당 평균 매출 |
+|---:|---:|---:|
+| 2 | 3 | 13,667원 |
+| 4 | 6 | 30,333원 |
+| 6 | 2 | 51,500원 |
+| 8 | 1 | 138,000원 |
+
+먼저 실제 좌석 ID별 매출을 만든 후 같은 수용 인원끼리 평균을 내므로, 주문 행이 많은 좌석이 평균 계산에서 중복 가중되지 않는다.
+
+## 5. KPI 3 — 주방 혼잡도
+
+```sql
+SELECT COUNT(*) AS active_orders,
+       SUM(CASE WHEN status = 'COOKING' THEN 1 ELSE 0 END)
+           AS cooking_orders,
+       ROUND(
+           SUM(CASE WHEN status = 'COOKING' THEN 1 ELSE 0 END) * 100.0
+           / NULLIF(COUNT(*), 0),
+           1
+       ) AS kitchen_congestion_rate
+FROM orders;
+```
+
+### 결과
+
+- 활성 주문 행: 24개
+- COOKING 주문 행: 5개
+- 주방 혼잡도: 20.8%
+
+Query 14가 취소 주문 ID 25를 삭제한 뒤의 같은 실행 상태에서 계산한다. 이 데이터 모델에서 한 주문 행은 메뉴 한 항목이므로, 이 수치는 주문서 수가 아니라 **주문 항목 행 비율**이다.
+
+## 6. 상태 기준에 관한 선택
+
+- 매출 KPI는 `CANCELLED`를 제외한다.
+- 혼잡도 분모는 Query 14 이후 DB에 남은 전체 주문 항목이다.
+- 실제 운영 환경에서는 결제 완료 여부, 환불, 조회 기간, 영업일 경계를 추가해야 한다.
+
+## 7. 재현
+
+```bash
+python scripts/verify_project.py
+```
+
+생성 파일:
+
+- `evidence/bonus_01_compare_methods.txt`
+- `evidence/bonus_02_fk_error_test.txt`
+- `evidence/bonus_03_kpi_metrics.txt`

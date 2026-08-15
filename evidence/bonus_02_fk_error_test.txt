@@ -1,9 +1,17 @@
-=== FOREIGN KEY INTEGRITY VIOLATION TEST ===
-Attempted Query:
-INSERT INTO orders (id, table_id, menu_id, quantity, order_time, status) VALUES (999, 9999, 1, 2, '2026-06-24 21:00:00', 'COOKING');
+=== INTEGRITY CONSTRAINT TESTS ===
 
-=== DATABASE ENGINE EXCEPTION LOG ===
-Exception Type: sqlite3.IntegrityError
-Message: FOREIGN KEY constraint failed
+FK 없는 좌석 참조 차단: PASS
+SQL: INSERT INTO orders VALUES(999,9999,1,1,'2026-06-24 21:00:00','COOKING')
+ERROR: IntegrityError: FOREIGN KEY constraint failed
 
-Status: Successfully blocked by RDBMS engine to prevent orphan records.
+허용되지 않은 status 차단: PASS
+SQL: INSERT INTO orders VALUES(998,1,1,1,'2026-06-24 21:00:00','INVALID')
+ERROR: IntegrityError: CHECK constraint failed: status IN ('COOKING', 'SERVED', 'CANCELLED')
+
+음수 quantity 차단: PASS
+SQL: INSERT INTO orders VALUES(997,1,1,-1,'2026-06-24 21:00:00','COOKING')
+ERROR: IntegrityError: CHECK constraint failed: quantity > 0
+
+중복 table_number 차단: PASS
+SQL: INSERT INTO store_tables VALUES(999,1,4)
+ERROR: IntegrityError: UNIQUE constraint failed: store_tables.table_number

@@ -1,424 +1,250 @@
-# B5-1 학습 노트: 정보를 깔끔하게 정리하는 디지털 서랍장 만들기
+# B5-1 입문 학습 노트
 
-> 문과 중졸도 이해할 수 있게
+> 관계형 데이터베이스를 처음 배우는 학생이 현재 프로젝트 SQL을 이해하기 위한 설명이다. 단계별 진행 기록은 `docs/learning-journal.md`, 선택 근거는 `docs/decision-log.md`에서 본다.
 
-## 📖 목차
+## 1. 가장 먼저 알아둘 말
 
-1. 초심자를 위한 용어집
-2. 과제 해석 및 분석
-3. DB와 DBMS
-4. SQL 개념 (DDL, DML, DCL, TCL)
-5. 쿼리 문의 의미와 동작과 사용
-6. DB 정규화
-7. ORM이란?
-8. 과제를 진행하기 위한 기초
-9. 각 기초를 익히기 위한 간단한 체험 예제
-10. 과제를 작게 쪼개기
-11. 워크플로우별 트레이드오프, 이슈, 트러블슈팅
-12. 과제 완료 후 학습한 내용 정리
+| 말 | 쉬운 뜻 | 이 프로젝트 예 |
+|---|---|---|
+| DB | 규칙을 가진 데이터 저장소 | 스마트 테이블 오더 DB |
+| DBMS | DB를 저장하고 SQL을 실행하는 프로그램 | SQLite |
+| 테이블 | 같은 종류의 행을 모은 표 | `menus` |
+| 행 | 데이터 한 건 | 유자차 메뉴 한 건 |
+| 컬럼 | 행의 항목 | 이름, 가격 |
+| PK | 행마다 겹치지 않는 신분증 | `menus.id` |
+| FK | 다른 테이블의 PK를 가리키는 번호 | `orders.menu_id` |
+| 1:N | 한 행에 여러 행이 연결되는 관계 | 메뉴 1개에 주문 여러 개 |
+| 무결성 | 잘못되거나 연결이 끊긴 값을 막는 규칙 | FK, CHECK |
+| SQL | DB에 내리는 명령 | SELECT, INSERT |
+| JOIN | 연결된 표를 함께 조회 | 주문 + 좌석 + 메뉴 |
+| 집계 | 개수·합계·평균 계산 | COUNT, SUM, AVG |
+| 인덱스 | 특정 조건을 찾기 위한 별도 찾아보기 | `orders(status)` |
 
----
+## 2. 엑셀과 관계형 DB
 
-## 1. 초심자를 위한 용어집
+둘 다 표처럼 보이지만 관계형 DB는 테이블 사이의 연결과 입력 규칙을 DB가 검사할 수 있다.
 
-| 용어 | 설명 | 비유 |
-|------|------|------|
-| 데이터베이스 (DB) | 데이터를 체계적으로 저장하는 공간 | 큰 서랍장 |
-| DBMS | DB를 관리하는 소프트웨어 | 서랍장 관리사 |
-| 테이블 | 같은 종류의 데이터를 모아둔 곳 | 서랍장의 한 칸 |
-| 행(Row) | 하나의 데이터 단위 | 서랍 안의 한 장의 카드 |
-| 열(Column) | 데이터의 속성 | 카드의 "이름", "가격" 항목 |
-| PK (기본키) | 각 행을 고유하게 식별하는 키 | 주민등록번호 |
-| FK (외래키) | 다른 테이블을 가리키는 키 | "작성자: 홍길동" 표시 |
-| 1:N 관계 | 한 쪽이 하나, 다른 쪽이 여럿 | 한 명 작성자 → 여러 글 |
-| JOIN | 두 테이블을 연결하여 조회 | 두 서랍의 내용을 합쳐서 보기 |
-| GROUP BY | 그룹별로 집계 | 반별 평균 계산 |
-| 인덱스 | 빠른 검색을 위한 색인 | 책의 색인 페이지 |
-| SQL | 데이터베이스에 명령하는 언어 | 서랍장 관리사에게 주문 |
-| 정규화 | 데이터 중복을 제거하는 과정 | 서랍을 정리해서 같은 물건이 여러 군데 흩어지지 않게 함 |
-| ORM | SQL을 직접 안 쓰고 코드로 DB 조작 | 번역기를 써서 외국어를 모르고도 소통 |
+예를 들어 주문마다 `한우 곱창 전골`, `32,000원`을 복사하면 메뉴 정보가 여러 곳에 중복된다. 이 프로젝트는 메뉴를 `menus`에 한 번 저장하고 주문에서는 `menu_id`만 참조한다.
 
----
+## 3. 네 테이블과 세 관계
 
-## 2. 과제 해석
+```text
+menu_categories (1) ──< menus (N)
+store_tables    (1) ──< orders (N)
+menus           (1) ──< orders (N)
+```
 
-한 줄: 프레임워크 없이 SQL을 직접 작성하여 도메인 DB를 설계하라.
-핵심: "ORM이 무엇을 해주는지 이해하기 위해 먼저 SQL을 직접 써보기"
+- 카테고리 하나에는 메뉴가 여러 개 있을 수 있다.
+- 좌석 하나에는 주문 항목이 여러 개 있을 수 있다.
+- 메뉴 하나도 여러 주문에 등장할 수 있다.
 
----
+현재 모델에서 `orders` 한 행은 주문서 전체가 아니라 **메뉴 한 항목**을 뜻한다.
 
-## 3. DB와 DBMS
+## 4. DDL과 DML
 
-### DB (Database)란?
-
-**데이터를 체계적으로 저장하고 관리하는 공간**입니다.
-
-엑셀과 비슷해 보이지만 핵심 차이는 **관계**입니다. 엑셀은 시트마다 독립적이지만, DB는 테이블 간에 관계(FK)를 맺어 데이터가 중복되지 않게 합니다.
-
-| | 엑셀 | DB |
-|---|------|-----|
-| 저장 | 시트 | 테이블 |
-| 관계 | 수동으로 VLOOKUP | FK로 자동 연결 |
-| 중복 | 복사붙여넣기 → 중복 발생 | 정규화 → 중복 제거 |
-| 동시성 | 한 명만 편집 | 여러 명 동시 접근 |
-| 검색 | Ctrl+F | SQL (정확한 조건 검색) |
-
-### DBMS (Database Management System)란?
-
-**DB를 관리하는 소프트웨어**입니다. 사용자가 SQL로 명령을 내리면 DBMS가 실제로 데이터를 저장/조회/수정/삭제합니다.
-
-| DBMS | 특징 | 용도 |
-|------|------|------|
-| **SQLite** | 파일 기반, 설치 불필요, 가벼움 | 개발/소규모 (이 과제에서 사용) |
-| **MySQL** | 서버 기반, 동시성 강함 | 웹 서비스 |
-| **PostgreSQL** | 서버 기반, 기능 풍부, 표준 준수 | 대규모/복잡한 서비스 |
-| **Oracle** | 상용, 엔터프라이즈 | 대기업 |
-
-비유: DB는 "서랍장", DBMS는 "서랍장 관리사"입니다. 관리사에게 "가격 2만원 이상 메뉴 찾아줘"라고 명령(SQL)하면, 관리사가 직접 뒤져서 가져다 줍니다.
-
----
-
-## 4. SQL 개념 (DDL, DML, DCL, TCL)
-
-SQL은 4가지 종류로 나뉩니다:
-
-### DDL (Data Definition Language) — 데이터 구조 정의
-
-"서랍장의 칸을 만들고, 고치고, 없애는" 명령입니다.
-
-| 명령 | 의미 | 예시 |
-|------|------|------|
-| `CREATE TABLE` | 테이블 생성 | `CREATE TABLE menus (id INTEGER PRIMARY KEY, name TEXT, price INTEGER);` |
-| `ALTER TABLE` | 테이블 구조 변경 | `ALTER TABLE menus ADD COLUMN description TEXT;` |
-| `DROP TABLE` | 테이블 삭제 | `DROP TABLE menus;` |
+### DDL: 구조를 만든다
 
 ```sql
--- 이 과제에서 사용한 DDL
-CREATE TABLE menu_categories (
-    id INTEGER PRIMARY KEY,
-    name TEXT NOT NULL UNIQUE
-);
-
 CREATE TABLE menus (
-    id INTEGER PRIMARY KEY,
-    name TEXT NOT NULL,
-    price INTEGER NOT NULL,
+    id          INTEGER PRIMARY KEY,
+    name        TEXT NOT NULL,
+    price       INTEGER NOT NULL CHECK (price >= 0),
     category_id INTEGER NOT NULL,
-    CONSTRAINT fk_menu_category FOREIGN KEY (category_id)
-        REFERENCES menu_categories(id)
+    FOREIGN KEY (category_id) REFERENCES menu_categories(id)
 );
 ```
 
-### DML (Data Manipulation Language) — 데이터 조작
+- `CREATE TABLE`: 표 만들기
+- `DROP TABLE`: 표 없애기
+- PK: ID 중복 방지
+- NOT NULL: 빈 필수값 방지
+- CHECK: 음수 가격 방지
+- FK: 없는 카테고리 참조 방지
 
-"서랍 안의 카드를 넣고, 찾고, 고치고, 빼는" 명령입니다. **가장 많이 쓰는 SQL**입니다.
+### DML: 데이터를 다룬다
 
-| 명령 | 의미 | 예시 |
-|------|------|------|
-| `INSERT` | 데이터 삽입 | `INSERT INTO menus (name, price) VALUES ('비빔밥', 15000);` |
-| `SELECT` | 데이터 조회 | `SELECT name, price FROM menus WHERE price >= 20000;` |
-| `UPDATE` | 데이터 수정 | `UPDATE orders SET status = 'SERVED' WHERE id = 18;` |
-| `DELETE` | 데이터 삭제 | `DELETE FROM orders WHERE status = 'CANCELLED';` |
+- `INSERT`: 넣기
+- `SELECT`: 읽기
+- `UPDATE`: 바꾸기
+- `DELETE`: 지우기
 
 ```sql
--- 이 과제에서 사용한 DML
-INSERT INTO menu_categories (id, name) VALUES (1, '소주');
-INSERT INTO menus (id, name, price, category_id) VALUES (1, '새로주 원본', 4500, 1);
-
-SELECT name, price FROM menus WHERE price >= 20000 ORDER BY price DESC LIMIT 5;
-
-UPDATE orders SET status = 'SERVED' WHERE id = 18;
-DELETE FROM orders WHERE id = 25;
+SELECT name, price
+FROM menus
+WHERE price >= 20000
+ORDER BY price DESC
+LIMIT 5;
 ```
 
-### DCL (Data Control Language) — 권한 제어
+뜻: 가격이 20,000원 이상인 메뉴를 비싼 순으로 최대 5개 보여 준다.
 
-"누가 서랍장을 열 수 있는지" 제어합니다. 이 과제에서는 사용하지 않습니다.
+## 5. SQLite에서 주의할 점
 
-| 명령 | 의미 |
-|------|------|
-| `GRANT` | 권한 부여 |
-| `REVOKE` | 권한 회수 |
-
-### TCL (Transaction Control Language) — 트랜잭션 제어
-
-"여러 명령을 하나의 작업 단위로 묶어서, 전부 성공하거나 전부 취소"합니다.
-
-| 명령 | 의미 |
-|------|------|
-| `BEGIN` | 트랜잭션 시작 |
-| `COMMIT` | 변경사항 확정 |
-| `ROLLBACK` | 변경사항 취소 |
-
-비유: "계좌이체" = 돈 빼기 + 돈 넣기. 하나라도 실패하면 전체 취소(ROLLBACK).
-
----
-
-## 5. 쿼리 문의 의미와 동작과 사용
-
-### SELECT — 데이터 조회
+### FK 켜기
 
 ```sql
--- 기본: 모든 메뉴 조회
-SELECT * FROM menus;
-
--- 조건: 2만원 이상 메뉴만
-SELECT name, price FROM menus WHERE price >= 20000;
-
--- 정렬 + 제한: 비싼 순 상위 5개
-SELECT name, price FROM menus WHERE price >= 20000 ORDER BY price DESC LIMIT 5;
-
--- 패턴 검색: '전골'이 포함된 메뉴
-SELECT name, price FROM menus WHERE name LIKE '%전골%';
+PRAGMA foreign_keys = ON;
 ```
 
-### JOIN — 테이블 연결
+SQLite는 연결마다 이 설정을 켜야 FK 위반을 차단한다.
+
+### 날짜와 시간
+
+SQLite에는 별도 DATETIME 저장 클래스가 없다. 이 프로젝트는 다음 ISO 형식 문자열로 통일한다.
+
+```text
+2025-06-03 18:05:00
+```
+
+같은 형식을 쓰면 시간순 문자열 정렬이 가능하다.
+
+## 6. INNER JOIN과 LEFT JOIN
+
+### INNER JOIN
+
+연결되는 양쪽 행만 남긴다.
 
 ```sql
--- INNER JOIN: 양쪽 다 매칭되는 것만
 SELECT t.table_number, m.name, o.quantity
 FROM orders o
 INNER JOIN store_tables t ON o.table_id = t.id
 INNER JOIN menus m ON o.menu_id = m.id
 WHERE o.status != 'CANCELLED';
--- 의미: "취소되지 않은 주문의 테이블번호, 메뉴명, 수량을 합쳐서 보여줘"
+```
 
--- LEFT JOIN: 왼쪽은 전부, 오른쪽은 매칭되는 것만
+### LEFT JOIN
+
+왼쪽 행을 전부 남긴다. 오른쪽 연결이 없으면 오른쪽 컬럼이 NULL이다.
+
+```sql
 SELECT m.id, m.name, m.price
 FROM menus m
 LEFT JOIN orders o ON m.id = o.menu_id
 WHERE o.id IS NULL;
--- 의미: "한 번도 주문되지 않은 메뉴를 찾아줘"
 ```
 
-**INNER vs LEFT 차이**:
-- INNER: 교집합 (매칭되는 것만)
-- LEFT: 왼쪽 전체 + 오른쪽 매칭 (없으면 NULL)
+뜻: 주문과 연결되지 않은 메뉴를 찾는다. 현재 결과는 유자차 1개다.
 
-### GROUP BY + 집계 — 그룹별 통계
+## 7. GROUP BY와 집계
 
 ```sql
--- 카테고리별 메뉴 개수와 평균 가격
-SELECT c.name AS category_name, COUNT(m.id) AS menu_count, ROUND(AVG(m.price), 0) AS avg_price
+SELECT c.name,
+       COUNT(m.id) AS menu_count,
+       ROUND(AVG(m.price), 0) AS avg_menu_price
 FROM menu_categories c
 INNER JOIN menus m ON c.id = m.category_id
-GROUP BY c.id, c.name
-ORDER BY menu_count DESC;
--- 의미: "카테고리별로 메뉴가 몇 개 있고 평균 가격은 얼마인가?"
-
--- 테이블별 누적 매출
-SELECT t.table_number, SUM(m.price * o.quantity) AS total_bill
-FROM store_tables t
-INNER JOIN orders o ON t.id = o.table_id
-INNER JOIN menus m ON o.menu_id = m.id
-WHERE o.status != 'CANCELLED'
-GROUP BY t.id, t.table_number
-ORDER BY total_bill DESC;
-
--- HAVING: 그룹에 대한 조건 (WHERE는 행에 대한 조건)
-SELECT m.name, SUM(o.quantity) AS total_sold
-FROM menus m
-INNER JOIN orders o ON m.id = o.menu_id
-WHERE o.status = 'SERVED'
-GROUP BY m.id, m.name
-HAVING SUM(o.quantity) >= 3;
--- 의미: "3개 이상 팔린 메뉴만"
+GROUP BY c.id, c.name;
 ```
 
-### 서브쿼리 — 쿼리 안의 쿼리
+1. 카테고리와 메뉴를 연결한다.
+2. 같은 카테고리끼리 묶는다.
+3. 메뉴 수와 평균 가격을 계산한다.
+
+- `WHERE`: 묶기 전 각 행을 거른다.
+- `HAVING`: 묶은 뒤 집계 결과를 거른다.
+
+## 8. 서브쿼리
+
+SQL 안에 작은 SQL을 넣는다.
 
 ```sql
--- 가장 비싼 메뉴가 포함된 주문
-SELECT * FROM orders
-WHERE menu_id = (
-    SELECT id FROM menus ORDER BY price DESC LIMIT 1
-);
--- 안쪽: 가장 비싼 메뉴의 id 찾기
--- 바깥: 그 메뉴가 포함된 주문 조회
+SELECT *
+FROM orders
+WHERE menu_id IN (
+    SELECT id
+    FROM menus
+    WHERE price = (SELECT MAX(price) FROM menus)
+)
+ORDER BY id;
 ```
 
-### UPDATE — 데이터 수정
+안쪽에서 최고 가격과 같은 메뉴 ID를 찾고, 바깥에서 해당 메뉴 주문을 찾는다. `IN`을 써서 최고가 동률 메뉴가 여러 개여도 처리한다.
+
+## 9. UPDATE와 DELETE를 안전하게 쓰기
+
+나쁜 예:
 
 ```sql
 UPDATE orders SET status = 'SERVED' WHERE id = 18;
--- 의미: "18번 주문의 상태를 서빙 완료로 바꿔줘"
 ```
 
-### DELETE — 데이터 삭제
+이 SQL은 주문 18의 현재 상태가 무엇인지 확인하지 않는다.
+
+현재 프로젝트:
 
 ```sql
-DELETE FROM orders WHERE id = 25;
--- 의미: "25번 주문 기록을 삭제해줘"
+UPDATE orders
+SET status = 'SERVED'
+WHERE id = 18 AND status = 'COOKING';
+
+DELETE FROM orders
+WHERE id = 25 AND status = 'CANCELLED';
 ```
 
-### CREATE INDEX — 검색 속도 향상
+ID와 예상 상태가 모두 맞을 때만 변경한다. 실행 후 영향 행 수도 확인한다.
+
+## 10. 인덱스
 
 ```sql
-CREATE INDEX idx_order_status ON orders (status);
--- 의미: orders 테이블의 status 컬럼에 색인(인덱스)을 만들어서
--- "status = 'COOKING'" 같은 조회를 빠르게 함
+CREATE INDEX IF NOT EXISTS idx_order_status
+ON orders (status);
 ```
 
----
+status 조건이 자주 쓰여 후보 인덱스를 만들었다. 현재 검증 DB의 실행 계획은 다음과 같다.
 
-## 6. DB 정규화
-
-### 정규화란?
-
-**데이터 중복을 제거하고 무결성을 보장하기 위해 테이블을 나누는 과정**입니다.
-
-비유: "양말이 옷장, 서랍, 현관에 각각 흩어져 있으면 찾기 어렵다. 양말은 양말 칸에 모아두자."
-
-### 왜 하는가?
-
-**문제 상황** (정규화 안 함):
-```
-orders 테이블에 메뉴 이름과 가격을 직접 넣는 경우:
-주문1: 비빔밥, 15000원
-주문2: 비빔밥, 15000원
-주문3: 비빔밥, 15000원
-→ "비빔밥"이 3번 중복됨
-
-메뉴 가격이 15000 → 16000으로 오르면?
-→ 3곳을 다 수정해야 함 (하나라도 빠지면 데이터 불일치)
+```text
+SEARCH orders USING INDEX idx_order_status (status=?)
 ```
 
-**정규화 후**:
-```
-menus 테이블: id=1, 비빔밥, 15000원 (한 번만 저장)
-orders 테이블: menu_id=1 (참조만)
-→ 가격이 오르면 menus 1곳만 수정하면 됨
-```
+주의:
 
-### 어떻게 하는가?
+- 인덱스는 저장 공간을 사용한다.
+- INSERT/UPDATE/DELETE 때 인덱스도 관리해야 한다.
+- 데이터와 통계에 따라 효과가 다르므로 항상 빠르다고 말하지 않는다.
 
-**중복되는 데이터를 별도 테이블로 분리하고, 원래 테이블은 FK로 참조**합니다.
+## 11. 잘못된 값이 막히는지 직접 확인
 
-이 과제에서:
-- 메뉴 카테고리명이 중복 → `menu_categories` 테이블로 분리
-- 메뉴 정보가 주문마다 중복 → `menus` 테이블로 분리, `orders`는 `menu_id`로 참조
+자동 검증에서 다음 입력을 일부러 시도한다.
 
-### 정규화 종류
+- 없는 좌석 9999를 참조 → FK 실패
+- `status='INVALID'` → CHECK 실패
+- `quantity=-1` → CHECK 실패
+- 이미 있는 좌석 번호 1 재입력 → UNIQUE 실패
 
-| 단계 | 이름 | 규칙 | 예시 |
-|------|------|------|------|
-| **1NF** | 제1정규형 | 하나의 칸에는 하나의 값만 | "전골, 철판" → 행 2개로 분리 |
-| **2NF** | 제2정규형 | 부분 종속 제거 (복합키의 일부에만 종속되는 컬럼 제거) | 주문_메뉴 복합키에서 메뉴명은 메뉴id에만 종속 → menus 테이블로 분리 |
-| **3NF** | 제3정규형 | 이행 종속 제거 (A→B→C 제거) | 회원id → 우편번호 → 주소 → 주소 테이블로 분리 |
+규칙을 DDL에 썼다는 사실만 보지 않고 실제 오류가 나는지 확인한다.
 
-**이 과제에서 달성한 정규화 수준**: 3NF (모든 비키 컬럼이 기본키에만 직접 종속)
+## 12. 정규화는 필요한 만큼만
 
-### 정규화 트레이드오프
+이번 미션에서는 다음 정도로 이해한다.
 
-| | 정규화 (분리) | 비정규화 (합침) |
-|---|---|---|
-| 장점 | 중복 제거, 무결성 보장 | 조회 속도 빠름 (JOIN 감소) |
-| 단점 | JOIN 많아짐 → 조회 느려질 수 있음 | 중복 발생, 수정 시 여러 곳 변경 |
-| 언제? | 기본 (트랜잭션 무결성 중요) | 읽기 많은 서비스 (성능 중요) |
+- 카테고리는 카테고리 표에 한 번 저장한다.
+- 메뉴는 메뉴 표에 한 번 저장한다.
+- 주문은 메뉴와 좌석 ID를 참조한다.
+- 같은 정보를 여러 행에 복사하지 않아 수정 불일치를 줄인다.
 
-비유: 정규화는 "물건을 종류별로 정리" (찾을 때 여러 서랍 뒤져야 함), 비정규화는 "자주 쓰는 물건은 책상 위" (빠르지만 정리가 안 됨).
+정규화 이론을 지나치게 확장하지 않고 관계가 자연스럽고 질문을 SQL로 풀 수 있는 구조를 목표로 한다.
 
----
+## 13. ORM과 연결
 
-## 7. ORM이란?
+ORM은 코드의 객체와 관계형 테이블을 연결하고 많은 SQL을 대신 만든다. 하지만 느린 쿼리나 잘못된 관계를 이해하려면 PK, FK, JOIN, GROUP BY를 먼저 알아야 한다. 이 과제에서 백엔드 프레임워크를 쓰지 않는 이유다.
 
-### ORM (Object-Relational Mapping)
+## 14. 현재 구현을 확인하는 순서
 
-**SQL을 직접 안 쓰고, 코드(객체)로 DB를 조작하는 기술**입니다.
-
-비유: "외국어(SQL)를 모르고도 번역기(ORM)를 쓰면 소통할 수 있다."
-
-### SQL vs ORM 비교
-
-```python
-# SQL (직접 작성 — 이 과제에서 한 방식)
-SELECT name, price FROM menus WHERE price >= 20000 ORDER BY price DESC LIMIT 5;
-
-# ORM (SQLAlchemy — B5-2에서 사용할 방식)
-db.query(Menu).filter(Menu.price >= 20000).order_by(Menu.price.desc()).limit(5).all()
+```bash
+python scripts/verify_project.py
 ```
 
-```python
-# SQL
-INSERT INTO menus (name, price, category_id) VALUES ('비빔밥', 15000, 1);
+그다음 아래 파일을 차례로 읽는다.
 
-# ORM
-menu = Menu(name='비빔밥', price=15000, category_id=1)
-db.add(menu)
-db.commit()
+1. `1_schema.sql`
+2. `2_data.sql`
+3. `3_queries.sql`
+4. `4_bonus_queries.sql`
+5. `evidence/verification_summary.txt`
+6. `docs/development-log.md`
+
+성공 기준:
+
+```text
+B5-1 AUTOMATED VERIFICATION: ALL PASS
 ```
-
-### ORM의 장단점
-
-| | ORM | SQL 직접 작성 |
-|---|-----|-------------|
-| 장점 | 코드가 직관적, SQL 모를 때도 가능, 자동 검증 | 정확한 제어, 복잡한 쿼리 쉬움 |
-| 단점 | 복잡한 쿼리는 어려움, 성능 튜닝 제한 | SQL 문법 알아야 함 |
-| 비유 | 자동변속기 (쉽지만 제한적) | 수동변속기 (어렵지만 정밀) |
-
-### 왜 이 과제에서 ORM을 금지했는가?
-
-**ORM이 내부적으로 어떤 SQL을 만드는지 이해하려면, 먼저 SQL을 직접 써봐야 하기 때문**입니다.
-
-나중에 SQLAlchemy(Django ORM, JPA 등)를 쓸 때:
-- ORM이 만든 SQL이 느리면 → 원인을 이해하고 최적화할 수 있음
-- N+1 문제(쿼리가 너무 많이 나가는 문제) → JOIN으로 해결할 수 있음
-- 이 과제에서 SQL을 직접 작성한 경험이 이해의 기초가 됨
-
-### 대표적인 ORM
-
-| 언어 | ORM | 프레임워크 |
-|------|-----|-----------|
-| Python | SQLAlchemy | FastAPI, Flask |
-| Python | Django ORM | Django |
-| Java | JPA/Hibernate | Spring |
-| JavaScript | Prisma, Sequelize | Node.js |
-| Ruby | ActiveRecord | Ruby on Rails |
-
----
-
-## 8. 과제를 진행하기 위한 기초
-
-1. 도메인 선택 (식당 키오스크)
-2. 테이블 설계 (4개, 1:N 관계 3개)
-3. CREATE TABLE (PK, FK, 제약조건)
-4. INSERT (샘플 데이터 각 10행+)
-5. SELECT (기본 조회, WHERE, ORDER BY)
-6. JOIN (INNER, LEFT)
-7. 집계 (GROUP BY, COUNT, SUM, AVG)
-8. 서브쿼리, UPDATE, DELETE, 인덱스
-
-## 9. 체험 예제
-
-### 테이블 생성
-```sql
-CREATE TABLE customers (id INTEGER PRIMARY KEY, name TEXT);
-CREATE TABLE orders (id INTEGER PRIMARY KEY, customer_id INTEGER REFERENCES customers(id));
-```
-
-### JOIN
-```sql
-SELECT c.name, o.id FROM customers c
-JOIN orders o ON c.id = o.customer_id;
-```
-
-## 10. 잡/워크
-- Job 1: 도메인 선택 + 테이블 설계 (4개, 1:N 2개)
-- Job 2: 스키마 생성 (CREATE TABLE)
-- Job 3: 샘플 데이터 입력 (각 10행+)
-- Job 4: 핵심 쿼리 15개 작성
-
-## 11. 트레이드오프
-- SQLite vs MySQL: SQLite (설치 불필요, 파일 기반)
-- INNER vs LEFT JOIN: 상황별 (모든 고객은 LEFT)
-- 컬럼 타입: 가격=INTEGER (정렬/집계 정확)
-- 정규화 vs 비정규화: 기본은 정규화, 읽기 성능 필요시 비정규화
-
-## 12. 학습 정리
-- "엑셀과 DB의 차이는 관계" — 테이블 간 연결이 핵심
-- "ORM이 해주는 일" — SQL 생성, 객체 매핑, 자동 검증
-- "정규화는 중복 제거" — 데이터 무결성을 위해 테이블을 나눔
-- "DDL은 구조, DML은 데이터" — CREATE/ALTER/DROP vs INSERT/SELECT/UPDATE/DELETE
-- "JOIN은 테이블 연결" — INNER(교집합), LEFT(왼쪽 전체)
-- "GROUP BY는 그룹별 통계" — COUNT/SUM/AVG + HAVING
-- "인덱스는 색인" — 조회 빠르게, 삽입 느려질 수 있음
