@@ -1,15 +1,13 @@
-# SQL로 만드는 나만의 데이터베이스 제출물
-
+# B5-1: 정보를 깔끔하게 정리하는 디지털 서랍장 만들기
 
 ## 📌 과제 정보
 
 | 항목 | 내용 |
 |------|------|
-| **과목** | 데이터베이스와 백엔드 |
-| **난이도** | ★☆☆ (Lv.1) |
-| **학습 시간** | 40분 |
-| **필수 여부** | ✅ 필수 |
-| **과제 번호** | 185012 |
+| **분야** | AI/SW 기초 |
+| **구분** | 데이터베이스와 백엔드 |
+| **학습 시간** | 40시간 |
+| **난이도·필수 여부·과제 번호** | 기존 저장소 기록은 `★☆☆·필수·185012`이나 첨부 PDF 본문에는 표시되지 않아 별도 확인 필요 |
 
 
 ## 🎯 프로젝트 개요
@@ -126,7 +124,7 @@ SQL로 나만의 데이터베이스를 설계하고 구축합니다. 도메인 �
 | capacity | INTEGER | 좌석 수, 정수 비교가 명확, 범위 쿼리(2인 이상)에 적합 |
 | quantity | INTEGER | 주문 수량, 정수, 음수 불가능 |
 | status | TEXT | 'COOKING'/'SERVED' 문자열, 가독성 우선 (ENUM 대신 TEXT 사용) |
-| created_at | TEXT | SQLite는 DATETIME을 TEXT로 저장 (ISO 8601), 문자열 정렬로 시간순 정렬 가능 |
+| order_time | DATETIME | SQLite 선언형은 유연하므로 ISO 8601 형식 문자열로 일관되게 입력하고 시간순 정렬 가능 |
 
 ---
 
@@ -287,13 +285,13 @@ FROM orders
 
 ### 스키마 생성 + 데이터 입력
 ```bash
-sqlite3 cafe_orders.db < schema.sql
-sqlite3 cafe_orders.db < seed_data.sql
+sqlite3 table_order.db < 1_schema.sql
+sqlite3 table_order.db < 2_data.sql
 ```
 
 ### 쿼리 실행
 ```bash
-sqlite3 cafe_orders.db < queries.sql
+sqlite3 table_order.db < 3_queries.sql
 ```
 
 ---
@@ -301,8 +299,8 @@ sqlite3 cafe_orders.db < queries.sql
 ## 🧪 테스트 방법
 
 ### 수동 테스트
-1. `schema.sql` 실행 → 4개 테이블 생성 확인
-2. `seed_data.sql` 실행 → 각 테이블 10행 이상 확인
+1. `1_schema.sql` 실행 → 4개 테이블 생성 확인
+2. `2_data.sql` 실행 → 각 테이블 10행 이상 확인
 3. 15개 쿼리 실행 → 각 결과 캡처
 4. JOIN 쿼리 → 연결된 데이터 조회 확인
 5. GROUP BY 쿼리 → 집계 결과 확인
