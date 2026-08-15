@@ -39,7 +39,7 @@ git status --short
 
 ```text
 B5-1 AUTOMATED VERIFICATION: ALL PASS
-B5-1 FULL CHECK: ALL PASS
+B5-1 CHECK ALL: PASS
 ```
 
 ## 미션 체크리스트
