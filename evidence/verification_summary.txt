@@ -11,9 +11,14 @@ menus rows=16 PASS
 menus PK=1 PASS
 orders rows=25 PASS
 orders PK=1 PASS
+column_names_and_types=15 PASS
+NOT_NULL_columns=11 PASS
+UNIQUE_indexes=2 PASS
 foreign_keys=3 PASS
 PRAGMA foreign_keys=ON PASS
 core_queries=15 PASS
+rubric_query_numbers_and_descriptions=15 PASS
+rubric_query_distribution=basic:4,join:4,aggregate:3,subquery:1,mutation:2,index:1 PASS
 Q01 PASS rows=4
 Q02 PASS rows=2
 Q03 PASS rows=5
@@ -29,6 +34,7 @@ Q12 PASS rows=3
 Q13 PASS rows=1
 Q14 PASS rows=1
 Q15 PASS rows=1
+core_text_evidence=15 PASS
 FK 없는 좌석 참조 차단: PASS
 허용되지 않은 status 차단: PASS
 음수 quantity 차단: PASS
