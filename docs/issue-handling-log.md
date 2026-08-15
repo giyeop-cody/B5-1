@@ -70,13 +70,33 @@
   - learning/eval 브랜치를 목적에 맞춰 로컬에서 최신화하고 전체 검사 완료
   - rewrite 전 bundle 보관 완료
   - 로컬 전체 refs 이메일 rewrite와 31개 old→new SHA 매핑 완료
-  - 원격 네 브랜치 force push 완료
-  - GitHub API에서 35개 고유 commit의 목표 이메일·계정 연결 확인 완료
-  - PR #5 병합 완료
-  - `main@708ff2c` fresh clone 전체 검사·링크·이메일 검증 PASS
-  - 최종 상태 문서는 별도 후속 PR로 기록, fresh clone 검증
+  - 원격 전체 브랜치 force push 완료
+  - 최종 GitHub API에서 5개 브랜치·41개 고유 commit의 목표 이메일·계정 연결 확인 완료
+  - PR #5와 PR #6 병합 완료
+  - `main@57d88f1` 및 learning/eval fresh clone 전체 검사·링크·이메일 검증 PASS
 - 외부 평가: 대기 중. 실제 평가를 임의 작성하지 않음.
 - 완료 조건: PR 병합, 브랜치 정리, rewrite·SHA·fresh-clone 검증까지 끝난 뒤 Issue에 최종 증거 게시
+
+## Issue #7 — 첨부 평가표 기준 재검증과 README 답변 보완
+
+- URL: <https://github.com/giyeop-cody/B5-1/issues/7>
+- 요청:
+  - 첨부 평가 1~5를 기준으로 과제 전체 재검증
+  - 각 평가 질문의 의도 분석
+  - 현재 프로젝트 데이터로 답변 작성
+  - README와 외부 평가 양식에 반영
+- 재검증 발견:
+  - 구현 자체는 정량 기준을 모두 충족했다.
+  - 기존 자동 요약에는 SQL 총 15개만 표시되어 범주별 수량이 직접 드러나지 않았다.
+  - 컬럼 이름·타입, NOT NULL, UNIQUE, 결과 텍스트 수량도 평가표 문구와 일대일로 표시되지 않았다.
+  - 개발 로그의 Query 5 설명에 `4-table JOIN`이라고 남은 표현을 실제 3-table JOIN으로 정정할 필요가 있었다.
+  - 작업공간 복원 뒤 실행 권한·로컬 Git 작성자·origin 원격 설정을 다시 적용해야 했다.
+- 처리:
+  - 평가표 정량 조건을 자동 검증에 추가
+  - 평가 질문·의도·답·실행 근거를 README에 추가
+  - 외부 동료평가 요청서를 같은 평가 1~5 형식으로 개편
+  - 트러블슈팅과 재검증 결과 기록
+- 상태: 기능 브랜치 검증 및 PR 진행 중
 
 ## 공통 종료 체크리스트
 
