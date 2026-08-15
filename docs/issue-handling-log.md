@@ -70,7 +70,9 @@
   - learning/eval 브랜치를 목적에 맞춰 로컬에서 최신화하고 전체 검사 완료
   - rewrite 전 bundle 보관 완료
   - 로컬 전체 refs 이메일 rewrite와 31개 old→new SHA 매핑 완료
-  - 원격 force push·PR·fresh clone 검증은 GitHub 인증 후 진행, fresh clone 검증
+  - 원격 네 브랜치 force push 완료
+  - GitHub API에서 35개 고유 commit의 목표 이메일·계정 연결 확인 완료
+  - PR·fresh clone 검증 진행 중, fresh clone 검증
 - 외부 평가: 대기 중. 실제 평가를 임의 작성하지 않음.
 - 완료 조건: PR 병합, 브랜치 정리, rewrite·SHA·fresh-clone 검증까지 끝난 뒤 Issue에 최종 증거 게시
 
@@ -82,8 +84,8 @@
 - [x] 텍스트·이미지 증거 재생성
 - [x] `scripts/check_all.sh` 최종 전체 PASS
 - [ ] Pull Request 검증과 main 병합
-- [ ] learning/eval 브랜치 정리
-- [ ] 전체 원격 브랜치·태그 이메일 rewrite
-- [ ] SHA 매핑·복구 bundle 보관
+- [x] learning/eval 브랜치 정리
+- [x] 전체 원격 브랜치·태그 이메일 rewrite
+- [x] SHA 매핑·복구 bundle 보관
 - [ ] fresh clone·GitHub API 최종 확인
 - [ ] 실제 외부 동료평가 수신
