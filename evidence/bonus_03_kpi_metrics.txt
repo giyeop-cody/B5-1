@@ -1,13 +1,28 @@
-=== KPI 1: CATEGORY REVENUE SHARE ===
-탕/전골 요리: 128000 KRW
-시그니처 메인: 102000 KRW
-소주/맥주: 85000 KRW
-튀김/안주류: 33000 KRW
-프리미엄 전통주: 28000 KRW
-볶음/철판 요리: 24000 KRW
-식사류: 22000 KRW
-가벼운 사이드: 20000 KRW
-하이볼/칵테일: 17000 KRW
-음료/탄산: 5000 KRW
+=== BONUS 3: KPI METRICS ===
 
-KPI Metrics successfully generated via SQL queries.
+KPI 1 CATEGORY REVENUE SHARE
+category_name	category_revenue	revenue_share_percentage
+-----------------------------------------------------------------
+탕/전골 요리	128000	27.6
+시그니처 메인	102000	22.0
+소주/맥주	85000	18.3
+튀김/안주류	33000	7.1
+프리미엄 전통주	28000	6.0
+볶음/철판 요리	24000	5.2
+식사류	22000	4.7
+가벼운 사이드	20000	4.3
+하이볼/칵테일	17000	3.7
+음료/탄산	5000	1.1
+
+KPI 2 AVERAGE REVENUE PER PHYSICAL TABLE
+capacity	table_count	avg_revenue_per_table
+----------------------------------------------------
+2	3	13667.0
+4	6	30333.0
+6	2	51500.0
+8	1	138000.0
+
+KPI 3 KITCHEN CONGESTION
+active_orders	cooking_orders	kitchen_congestion_rate
+--------------------------------------------------------------
+24	5	20.8

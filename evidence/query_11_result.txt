@@ -1,8 +1,18 @@
--- [집계 3] 판매 메뉴별 총 판매 수량(SUM)을 그룹화 집계하고, 총 판매량이 3개 이상인 인기 베스트셀러 메뉴 조회
-SELECT m.name AS menu_name, SUM(o.quantity) AS total_sold_qty FROM menus m INNER JOIN orders o ON m.id = o.menu_id WHERE o.status = 'SERVED' GROUP BY m.id, m.name HAVING SUM(o.quantity) >= 3;
+=== Q11 [집계] SERVED 판매 수량이 3개 이상인 메뉴를 조회한다. ===
 
-=== EXECUTION RESULT ===
+SQL
+-- [Q11][집계] SERVED 판매 수량이 3개 이상인 메뉴를 조회한다.
+SELECT m.name AS menu_name,
+       SUM(o.quantity) AS total_sold_qty
+FROM menus m
+INNER JOIN orders o ON m.id = o.menu_id
+WHERE o.status = 'SERVED'
+GROUP BY m.id, m.name
+HAVING SUM(o.quantity) >= 3
+ORDER BY total_sold_qty DESC, m.id;
+
+RESULT
 menu_name	total_sold_qty
---------------------------------------------------
+----------------------------------------
 참이슬 후레쉬	12
 테라 생맥주 500ml	5

@@ -1,7 +1,24 @@
-=== METHOD A (JOIN) RESULT ===
-[('치즈 계란말이', 12000), ('차돌 떡볶이', 18000), ('참치 마요 주먹밥', 5000), ('한우 곱창 전골', 32000), ('모둠 수제 꼬치', 22000)]
+=== BONUS 1: JOIN VS SUBQUERY ===
 
-=== METHOD B (SUBQUERY) RESULT ===
-[('한우 곱창 전골', 32000), ('치즈 계란말이', 12000), ('참치 마요 주먹밥', 5000), ('차돌 떡볶이', 18000), ('모둠 수제 꼬치', 22000)]
+JOIN RESULT
+id	name	price
+----------------------------------------
+1	한우 곱창 전골	32000
+4	치즈 계란말이	12000
+5	참치 마요 주먹밥	5000
+9	차돌 떡볶이	18000
+10	모둠 수제 꼬치	22000
 
-Conclusion: Both execution methods yield identical row sets.
+SUBQUERY RESULT
+id	name	price
+----------------------------------------
+1	한우 곱창 전골	32000
+4	치즈 계란말이	12000
+5	참치 마요 주먹밥	5000
+9	차돌 떡볶이	18000
+10	모둠 수제 꼬치	22000
+
+SET EQUALITY: PASS
+JOIN PLAN: SCAN o | SEARCH m USING INTEGER PRIMARY KEY (rowid=?) | USE TEMP B-TREE FOR DISTINCT | USE TEMP B-TREE FOR ORDER BY
+SUBQUERY PLAN: SEARCH m USING INTEGER PRIMARY KEY (rowid=?) | LIST SUBQUERY 1 | SCAN o
+결론: 현재 결과 집합은 같지만 성능은 DB·통계·데이터 분포에 따라 달라져 단정하지 않는다.

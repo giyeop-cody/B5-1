@@ -1,6 +1,14 @@
--- [조인 3 - LEFT] 전체 매장 메뉴를 기준으로 주문 트랜잭션을 결합하여, 오늘 단 한 번도 주문되지 않은 판매 부진 메뉴 탐색
-SELECT m.id, m.name, m.price FROM menus m LEFT JOIN orders o ON m.id = o.menu_id WHERE o.id IS NULL;
+=== Q07 [LEFT JOIN] 전체 샘플 기간에 주문 이력이 한 번도 없는 메뉴를 찾는다. ===
 
-=== EXECUTION RESULT ===
+SQL
+-- [Q07][LEFT JOIN] 전체 샘플 기간에 주문 이력이 한 번도 없는 메뉴를 찾는다.
+SELECT m.id, m.name, m.price
+FROM menus m
+LEFT JOIN orders o ON m.id = o.menu_id
+WHERE o.id IS NULL
+ORDER BY m.id;
+
+RESULT
 id	name	price
---------------------------------------------------
+----------------------------------------
+16	유자차	4500
