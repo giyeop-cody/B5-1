@@ -36,4 +36,3 @@ python scripts/verify_project.py
 - [ ] 잘못된 FK·상태·수량이 왜 차단되는지 설명할 수 있다.
 - [ ] 자동 검증 결과를 실제 증거 파일과 연결할 수 있다.
 
-학습자 자체 확인과 외부 동료평가는 다르다. 외부 평가 기록은 eval 브랜치와 `docs/peer-evaluation-request.md`에서 관리한다.

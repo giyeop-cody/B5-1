@@ -64,7 +64,7 @@
 ### 2.7 Query 5/9/12 분석이 실제 SQL과 달랐음 — Issue #2
 
 - 문제: 문서 일부가 현재 존재하지 않는 고객·주문상세 도메인 또는 다른 조건을 설명했다.
-- 해결: 현재 Query 5의 4-table JOIN, Query 9의 카테고리 집계, Query 12의 최고가 메뉴 서브쿼리 기준으로 문서를 전부 다시 썼다.
+- 해결: 현재 Query 5의 3-table JOIN, Query 9의 카테고리 집계, Query 12의 최고가 메뉴 서브쿼리 기준으로 문서를 전부 다시 썼다.
 
 ### 2.8 ERD의 타입 오기 — Issue #2
 
@@ -89,14 +89,36 @@
 - 해결: 경로 대신 `fresh SQLite database created for this run`이라는 안정된 설명을 기록한다.
 - 검증: 전체 검사를 연속 두 번 실행하고 모든 텍스트·PNG·ERD의 SHA-256 목록이 같은지 비교해 PASS를 확인했다.
 
+### 2.12 첨부 평가표의 정량 기준이 자동 검증에 모두 드러나지 않았음 — Issue #7
+
+- 발견: 실제 구현은 평가표의 SQL 분포와 컬럼 타입 조건을 만족했지만 기존 요약은 `core_queries=15`만 표시해 기본 조회·JOIN·집계 등의 개별 수량을 한눈에 재검증하기 어려웠다.
+- 해결:
+  - 15개 컬럼 이름·타입 일치 검사
+  - NOT NULL 컬럼과 UNIQUE 인덱스 개수 검사
+  - Q01~Q15 연속 번호와 한 줄 설명 검사
+  - 기본 4·JOIN 4·집계 3·서브쿼리 1·수정삭제 2·인덱스 1 분포 검사
+  - 결과 텍스트 15개 생성 검사
+- 문서: README에 평가 1~5의 질문 의도, 프로젝트 답, 실제 결과를 추가하고 외부 평가 요청서도 같은 항목으로 맞췄다.
+
+### 2.13 재검증 환경에서 실행 권한과 Git 작성자 설정이 사라짐 — Issue #7
+
+- 증상 1: 작업공간 복원 뒤 스크립트 모드가 `0755`에서 `0644`로 보이며 `Permission denied`가 발생했다.
+- 해결 1: Git에 기록된 실행 모드와 같도록 네 스크립트에 실행 권한을 다시 적용한 뒤 전체 검사를 통과했다.
+- 증상 2: 새 커밋 직전 로컬 `.git/config`의 작성자 설정이 없어 커밋이 중단됐다.
+- 해결 2: 작성자와 커미터를 `giyeop-cody <cody.giyeop@gmail.com>`으로 다시 설정하고 실제 commit metadata를 확인했다.
+- 증상 3: 기능 브랜치를 push할 때 로컬 `origin` 정보가 없어 `does not appear to be a git repository` 오류가 발생했다.
+- 해결 3: 토큰이 들어가지 않은 공개 HTTPS 원격 주소를 `origin`으로 다시 등록한 뒤 push를 재실행했다.
+
 ## 3. 자동 검증 범위
 
 `python scripts/verify_project.py`는 다음을 검사한다.
 
 - 테이블 4개와 각 PK
 - seed 행 수 10/12/16/25
+- 컬럼 이름·타입 15개, NOT NULL, UNIQUE
 - FK 3개 및 `PRAGMA foreign_keys=ON`
-- 핵심 Query 15개 실행
+- 평가표의 핵심 SQL 범주 분포와 Query 15개 실행
+- 결과 텍스트 15개 생성
 - 안전 UPDATE/DELETE 영향 행 수
 - JOIN/서브쿼리 결과 집합 동치
 - KPI 3종 실행
