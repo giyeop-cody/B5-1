@@ -31,6 +31,7 @@
   - 텍스트 기반 PNG 16개 재생성
   - 현재 스키마 기준 ERD 재생성
   - 복합 쿼리 문서를 현재 Q5/Q9/Q12 기준으로 다시 작성
+  - 무작위 임시 DB 경로를 증거에서 제거해 연속 실행 결과를 안정화
 - 관련 커밋: `85ef431`, `41cf29a`, `b2aea44`
 - 검증: `scripts/check_all.sh`, 이미지 표본 직접 확인
 
@@ -77,7 +78,7 @@
 - [x] 변경 종류별 커밋 분리
 - [x] 실제 SQLite 실행 기반 자동 검증
 - [x] 텍스트·이미지 증거 재생성
-- [ ] `scripts/check_all.sh` 최종 전체 PASS
+- [x] `scripts/check_all.sh` 최종 전체 PASS
 - [ ] Pull Request 검증과 main 병합
 - [ ] learning/eval 브랜치 정리
 - [ ] 전체 원격 브랜치·태그 이메일 rewrite

@@ -1,6 +1,6 @@
 B5-1 AUTOMATED VERIFICATION: ALL PASS
 SQLite version=3.46.1
-database=/tmp/b5-1-q0mkjpth/table_order.db
+database=fresh SQLite database created for this run
 
 tables=4 PASS: menu_categories, menus, orders, store_tables
 menu_categories rows=10 PASS

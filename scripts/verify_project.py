@@ -274,10 +274,12 @@ def main() -> None:
     checks.extend(execute_bonus(bonus_connection, split_cases("4_bonus_queries.sql", BONUS_MARKER)))
     bonus_connection.close()
 
+    # 임시 디렉터리의 무작위 경로를 증거 파일에 쓰면 실행할 때마다
+    # 내용이 달라진다. 새 DB를 썼다는 사실만 안정적으로 기록한다.
     summary = [
         "B5-1 AUTOMATED VERIFICATION: ALL PASS",
         f"SQLite version={sqlite3.sqlite_version}",
-        f"database={db_path}",
+        "database=fresh SQLite database created for this run",
         "",
         *checks,
     ]
