@@ -222,6 +222,7 @@ SQLite의 타입 선언은 다른 DBMS보다 유연하므로, 올바른 값 범�
 - GitHub Issue 처리: [`docs/issue-handling-log.md`](docs/issue-handling-log.md)
 - Git 이메일 rewrite 기록: [`docs/history-rewrite.md`](docs/history-rewrite.md)
 - old→new commit SHA 전체 매핑: [`docs/email-rewrite-map.tsv`](docs/email-rewrite-map.tsv)
+- 감사 지적 최종 처리: [`docs/final-audit-verification.md`](docs/final-audit-verification.md)
 - 외부 동료평가 요청서: [`docs/peer-evaluation-request.md`](docs/peer-evaluation-request.md)
 
 외부 동료평가 결과는 평가자가 직접 검증한 뒤 기록한다. 구현자가 실제 평가를 받은 것처럼 임의 작성하지 않는다.
