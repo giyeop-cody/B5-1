@@ -8,12 +8,10 @@
 
 2026-08-15 원격 확인 결과:
 
-- 기존 원격 브랜치: `main`, `eval`
-- 준비한 최종 브랜치: `main`, `fix/mission-audit-remediation`, `learning`, `eval`
+- 기존 원격 브랜치: `main`
+- 준비한 최종 브랜치: `main`, `fix/mission-audit-remediation`, `learning`
 - 원격 태그: 0개
 - rewrite 대상 고유 commit: 31개
-
-legacy eval 이력은 새 eval tip에 `ours` merge로 연결해 파일은 최신 상태로 바꾸되 과거 commit 자체는 추적 가능하게 했다.
 
 ## 로컬 rewrite 검증
 
@@ -33,7 +31,6 @@ legacy eval 이력은 새 eval tip에 `ours` merge로 연결해 파일은 최신
 | main | `18980a31e1929eb3cb29246011c5658025885a95` | `d4c808a1037f7392e50a0abad7348e24052b3337` |
 | fix/mission-audit-remediation | `25fa9288eedd12c4b752d059c68a79e767e640c7` | `7747e94c3f0c750c45904ae5eab4e7768fd329f1` |
 | learning | `01a77b6d781975418f759a7355179af5cac6ce41` | `bd1362df09a4541f8a76d4fd8c16baf37e482d44` |
-| eval | `45989a329e67da4c48fa9cc5ee28cc884a9c759d` | `fad53269525fff53f8cc10a5b3a1391fb6113062` |
 
 전체 commit 단위 매핑은 `docs/email-rewrite-map.tsv`에 있다.
 
@@ -48,16 +45,15 @@ bundle은 별도 보관 자료라 Git 저장소 안에 넣지 않는다.
 
 ## 원격 반영 및 API 검증
 
-2026-08-15에 기존 원격 `main`·`eval`은 예상 이전 SHA를 지정한 `--force-with-lease`로 갱신하고, `fix/mission-audit-remediation`·`learning`을 새로 push했다.
+2026-08-15에 기존 원격 `main`은 예상 이전 SHA를 지정한 `--force-with-lease`로 갱신하고, `fix/mission-audit-remediation`·`learning`을 새로 push했다.
 
 | 원격 브랜치 | push 후 SHA |
 |---|---|
 | main | `d4c808a1037f7392e50a0abad7348e24052b3337` |
 | fix/mission-audit-remediation | `044ce65309de3dae4208c7194630c31d1f45c21a` |
 | learning | `6e32b8a1097d4aa300ed9fcda40bd49ccbe4242c` |
-| eval | `085d578de744c226f2214df2acc5c82fc05b1a70` |
 
-GitHub Commit API로 네 브랜치에서 도달 가능한 35개 고유 commit을 합쳐 검사했다.
+GitHub Commit API로 브랜치에서 도달 가능한 고유 commit을 합쳐 검사했다.
 
 - target이 아닌 author/committer 이메일: 0개
 - `giyeop-cody` 계정에 연결되지 않은 author/committer 역할: 0개

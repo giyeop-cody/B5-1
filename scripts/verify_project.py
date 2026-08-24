@@ -161,8 +161,8 @@ def verify_schema(connection: sqlite3.Connection) -> list[str]:
     return checks
 
 
-def verify_rubric_distribution(cases: list[SqlCase]) -> list[str]:
-    """첨부 평가표가 요구하는 15개 SQL의 번호·설명·범주 수량을 확인한다."""
+def verify_query_distribution(cases: list[SqlCase]) -> list[str]:
+    """공식 요구사항이 정의하는 15개 SQL의 번호·설명·범주 수량을 확인한다."""
     assert [case.number for case in cases] == [f"Q{number:02d}" for number in range(1, 16)]
     assert all(case.description.strip() for case in cases), "모든 쿼리에 한 줄 설명이 필요합니다."
 
@@ -171,8 +171,8 @@ def verify_rubric_distribution(cases: list[SqlCase]) -> list[str]:
     join_count = categories["INNER JOIN"] + categories["LEFT JOIN"]
     assert join_count == 4
     return [
-        "rubric_query_numbers_and_descriptions=15 PASS",
-        "rubric_query_distribution="
+        "query_numbers_and_descriptions=15 PASS",
+        "query_distribution="
         f"basic:{categories['기본조회']},join:{join_count},aggregate:{categories['집계']},"
         f"subquery:{categories['서브쿼리']},mutation:{categories['수정'] + categories['삭제']},"
         f"index:{categories['인덱스']} PASS",
@@ -181,7 +181,7 @@ def verify_rubric_distribution(cases: list[SqlCase]) -> list[str]:
 
 def execute_core(connection: sqlite3.Connection, cases: list[SqlCase]) -> list[str]:
     assert len(cases) == 15, f"핵심 SQL은 15개여야 합니다: {len(cases)}"
-    checks = ["core_queries=15 PASS", *verify_rubric_distribution(cases)]
+    checks = ["core_queries=15 PASS", *verify_query_distribution(cases)]
     for case in cases:
         cursor = connection.execute(case.sql)
         columns: list[str]

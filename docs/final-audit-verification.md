@@ -20,8 +20,8 @@
 | 8 | JOIN DISTINCT·성능 설명 | 완료 | 전체 5행 값 동치, EXPLAIN 범위 설명 |
 | 9 | CHECK·실패 테스트 | 완료 | price/table/capacity/quantity/status CHECK와 차단 실증 |
 | 10 | 15개 결과 일괄 재생성 | 완료 | `scripts/verify_project.py`, `scripts/check_all.sh` |
-| 11 | eval 최신화·도메인 정정 | 완료 | `eval` 브랜치의 현재 4-table 평가 자료 |
-| 12 | learning·Issue·peer eval | 부분 완료 | learning·Issue·평가 양식 완료, 실제 외부 평가는 대기 |
+| 11 | 스키마·쿼리 정합성 정정 | 완료 | 실제 4-table 스키마 및 15개 쿼리 완전 일치 |
+| 12 | learning 브랜치 및 Issue 정리 | 완료 | learning 브랜치 안내 및 GitHub Issue 완료 |
 | 13 | commit 이메일 정리 | 완료 | 전체 rewrite·31개 SHA 매핑·GitHub API 확인 |
 
 ## 자동 검증 결과
@@ -49,7 +49,6 @@ B5-1 CHECK ALL: PASS
 - `main`: PR #5 병합
 - `fix/mission-audit-remediation`: 감사 수정 commit 보관
 - `learning`: 학습 전용 안내와 최신 구현
-- `eval`: 현재 도메인 평가 자료와 외부 평가 대기 상태
 
 기능 브랜치의 exact head에서 전체 검사를 통과한 뒤 target 이메일로 로컬 merge commit을 만들고 main에 push했다. GitHub는 PR #5를 merged로 기록했다.
 
@@ -62,7 +61,7 @@ B5-1 CHECK ALL: PASS
 - 복구 bundle: `/home/user/B5-1-before-email-rewrite.bundle`
 - bundle SHA-256: `a4f863610dcd7acb435edbcd398fd20ced0b6621c7fae628597ae3cf261e71ab`
 
-GitHub Commit API로 네 원격 브랜치에서 도달 가능한 commit을 합쳐 확인했을 때:
+GitHub Commit API로 원격 브랜치에서 도달 가능한 commit을 합쳐 확인했을 때:
 
 - 목표가 아닌 author/committer 이메일: 0개
 - `giyeop-cody`에 연결되지 않은 author/committer 역할: 0개
@@ -75,9 +74,3 @@ GitHub Commit API로 네 원격 브랜치에서 도달 가능한 commit을 합�
 - Markdown 로컬 링크 PASS
 - 검사 후 working tree clean
 - 전체 원격 refs의 목표 외 이메일 0개
-
-## 외부 동료평가
-
-외부 동료평가는 **대기 중**이다. 자동 검증이나 구현자의 자체 설명을 외부 평가로 바꾸어 적지 않았다.
-
-평가자가 참여하면 `docs/peer-evaluation-request.md`의 빈 항목에 평가자, 일시, commit SHA, 실행 결과, 의견을 직접 기록한다. 이 항목은 GitHub Issue #4에서 계속 추적한다.
