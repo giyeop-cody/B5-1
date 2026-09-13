@@ -32,16 +32,12 @@
 | fix/mission-audit-remediation | `25fa9288eedd12c4b752d059c68a79e767e640c7` | `7747e94c3f0c750c45904ae5eab4e7768fd329f1` |
 | learning | `01a77b6d781975418f759a7355179af5cac6ce41` | `bd1362df09a4541f8a76d4fd8c16baf37e482d44` |
 
-전체 commit 단위 매핑은 `docs/email-rewrite-map.tsv`에 있다.
+전체 commit 단위 매핑은 같은 폴더의 [`email-rewrite-map.tsv`](email-rewrite-map.tsv)에 있다.
 
-## 복구 자료
+## 추적 자료
 
-- rewrite 전 bundle: `/home/user/B5-1-before-email-rewrite.bundle`
-- SHA-256: `a4f863610dcd7acb435edbcd398fd20ced0b6621c7fae628597ae3cf261e71ab`
-- 전체 old→new 매핑 원본: `/home/user/email-rewrite-b5-1/commit-map.txt`
-- rewrite 전 refs: `/home/user/email-rewrite-b5-1/pre-rewrite-refs.txt`
-
-bundle은 별도 보관 자료라 Git 저장소 안에 넣지 않는다.
+- 전체 old→new SHA 매핑: [`email-rewrite-map.tsv`](email-rewrite-map.tsv) (31개 commit, 이 저장소에 있음)
+- rewrite 전 snapshot과 refs는 작업 머신의 로컬 보관 자료였다. 채점자가 열 수 없는 경로는 근거로 두지 않는 원칙에 따라 링크를 제거했고, 저장소 안의 SHA 매핑만 근거로 남긴다. 이 절차를 정리한 근거는 [`decision-log.md`](decision-log.md) D14다.
 
 ## 원격 반영 및 API 검증
 

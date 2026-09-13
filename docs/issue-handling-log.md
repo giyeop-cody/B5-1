@@ -28,7 +28,7 @@
 - 원인: SQL 변경 뒤 증거와 문서를 같은 실행에서 다시 만들지 않았다.
 - 처리:
   - 새 DB 한 개에서 Query 1~15 결과 텍스트 재생성
-  - 텍스트 기반 PNG 16개 재생성
+  - 텍스트 증거에서 렌더링한 PNG 16개 재생성
   - 현재 스키마 기준 ERD 재생성
   - 복합 쿼리 문서를 현재 Q5/Q9/Q12 기준으로 다시 작성
   - 무작위 임시 DB 경로를 증거에서 제거해 연속 실행 결과를 안정화
@@ -53,7 +53,7 @@
 - 검증:
   - FK·status·quantity·UNIQUE 위반 차단 PASS
   - Query 1~15 PASS
-  - JOIN/서브쿼리 5행 전체 값 동치 PASS
+  - JOIN/서브쿼리 전체 행 값 동치 PASS
   - KPI 10/4/1행 PASS
 
 ## Issue #4 — 학습 문서 및 Git 이력 정리
@@ -91,6 +91,25 @@
   - 데이터 모델링 분석, SQL 개념 분석, 단계별 풀이 과정을 README에 보강
   - 트러블슈팅과 재검증 결과 기록
 - 상태: 기능 브랜치 검증 및 PR 병합 완료
+
+## Issue #9 — 문서·증거·SQL 동기화와 검증 강화 (2026-09-13)
+
+- 발견:
+  - `bonus_report.md`가 `4_bonus_queries.sql`에 없는 SQL(`order_time BETWEEN`)과 다른 KPI SQL 버전을 설명했다.
+  - README의 CLI 실행 순서로 치면 보너스 1이 4행·혼잡도 16.7%가 되지만 증거는 새 DB 기준(5행·20.8%)이었다.
+  - 기본 조회 4개 중 `LIMIT`은 Q01에만 있었다.
+  - `store_tables`의 `id`와 `table_number`가 12행 모두 같아 두 키의 역할이 데이터로 드러나지 않았다.
+  - 문서가 저장소 밖 절대 경로(감사 원문·복구 bundle)를 근거로 들었다.
+- 원인: SQL·문서·증거를 따로 고치는 경로가 남아 있었고, 자체 검증은 SQL 분포만 봐서 문서 정합성은 검사하지 않았다.
+- 처리:
+  - `verify_project.py`가 Q1~Q15와 보너스를 같은 연결·README와 같은 순서로 실행하게 변경 (증거 = 수동 실행 결과)
+  - `bonus_report.md`·README·`LEARNING.md`·`docs/` 수치를 현재 SQL과 현재 상태로 재동기화
+  - Q02·Q03·Q04에 `LIMIT` 추가, 기본 조회 세 절 존재를 검증 항목으로 추가
+  - 좌석 번호를 1층 `1xx`·2층 `2xx`로 분리 입력, UNIQUE 차단 테스트도 `101` 재입력으로 정정
+  - `evidence/screenshots` → `evidence/captures`로 이름을 바꿔 합성 캡처와 GUI 캡처를 이름으로 구분
+  - 저장소 밖 경로 인용 금지·마크다운 링크 실재 여부·문서 인용 SQL 동치를 검증에 편입
+- 검증: `scripts/check_all.sh` ALL PASS, 재생성 후 `git status` clean
+- 상태: `main` 반영 필요 (워크스페이스 작업본에 반영 완료)
 
 ## 공통 종료 체크리스트
 

@@ -29,7 +29,7 @@ ORDER BY o.order_time;
 
 ### 실증 결과
 
-seed 25행 중 취소 상태인 주문 ID 25를 제외한 24행이 반환된다. 실제 결과는 `evidence/query_05_result.txt`에 있다.
+seed 25행 중 취소 상태인 주문 ID 25를 제외한 24행이 반환된다. Q05는 Q14(취소 행 삭제)보다 앞에 실행되므로, 이 결과의 24행은 `WHERE o.status != 'CANCELLED'`가 걸러낸 24행이다. 실제 결과는 `evidence/query_05_result.txt`에 있다.
 
 ## Query 9: GROUP BY로 카테고리별 메뉴 통계
 

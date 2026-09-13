@@ -1,11 +1,12 @@
-=== Q03 [기본조회] 현재 COOKING 상태인 주문을 오래된 주문순으로 조회한다. ===
+=== Q03 [기본조회] 현재 COOKING 상태인 주문을 오래된 주문순으로 최대 10개 조회한다. ===
 
 SQL
--- [Q03][기본조회] 현재 COOKING 상태인 주문을 오래된 주문순으로 조회한다.
+-- [Q03][기본조회] 현재 COOKING 상태인 주문을 오래된 주문순으로 최대 10개 조회한다.
 SELECT id, table_id, menu_id, order_time
 FROM orders
 WHERE status = 'COOKING'
-ORDER BY order_time ASC;
+ORDER BY order_time ASC
+LIMIT 10;
 
 RESULT
 id	table_id	menu_id	order_time

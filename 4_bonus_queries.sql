@@ -2,6 +2,10 @@
 -- 파일명: 4_bonus_queries.sql
 -- 설명: B5-1 보너스 1·3 검증용 SQL
 -- 대상 DB: SQLite 3
+-- 실행 순서: 1_schema.sql → 2_data.sql → 3_queries.sql → 4_bonus_queries.sql
+--            Q13(UPDATE)·Q14(DELETE)가 적용된 DB에서 실행한다. `evidence/bonus_*.txt`도
+--            스크립트에서 같은 순서·같은 DB로 생성되므로 수동 실행 결과와 증거가 짝을 이룬다.
+--            새 데이터로 다시 보려면 `python scripts/verify_project.py`가 매 단계 새 DB를 만든다.
 -- ============================================================================
 
 -- [B01][JOIN] COOKING 주문에 포함된 메뉴 집합을 중복 없이 조회한다.

@@ -20,7 +20,8 @@ CREATE TABLE menu_categories (
     name TEXT NOT NULL UNIQUE
 );
 
--- 매장 좌석: table_number는 실제 매장 안에서 중복될 수 없다.
+-- 매장 좌석: id는 FK가 참조하는 내부 대리 키, table_number는 손님이 보는 실제 번호다.
+--            1층은 1xx, 2층은 2xx로 입력해 두 키가 같은 숫자가 아니게 했다(근거: docs/decision-log.md D12).
 CREATE TABLE store_tables (
     id INTEGER PRIMARY KEY,
     table_number INTEGER NOT NULL UNIQUE CHECK (table_number > 0),

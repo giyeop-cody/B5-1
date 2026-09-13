@@ -5,7 +5,7 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
 python scripts/verify_project.py
-python scripts/generate_screenshots.py
+python scripts/generate_captures.py
 python scripts/generate_erd.py
 git diff --check
 

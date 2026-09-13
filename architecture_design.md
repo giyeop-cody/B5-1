@@ -13,7 +13,7 @@ SQLite는 별도 DATETIME 저장 클래스가 없고 선언형이 유연하다. 
 ## 2. 테이블 역할
 
 1. `menu_categories`: 메뉴 분류 이름
-2. `store_tables`: 매장 좌석 번호와 수용 인원
+2. `store_tables`: 매장 좌석 번호와 수용 인원 (`id`는 내부 대리 키, `table_number`는 손님이 보는 실제 번호. 1층 `1xx`, 2층 `2xx`로 두 값을 일부러 다르게 입력했다)
 3. `menus`: 메뉴명·가격·카테고리
 4. `orders`: 좌석·메뉴·수량·시간·조리 상태
 
@@ -34,7 +34,7 @@ FK는 존재하지 않는 카테고리·좌석·메뉴 참조를 차단한다.
 | menu_categories | id | INTEGER | PK | 카테고리 ID |
 | | name | TEXT | NOT NULL, UNIQUE | 카테고리명 |
 | store_tables | id | INTEGER | PK | 좌석 ID |
-| | table_number | INTEGER | NOT NULL, UNIQUE, CHECK > 0 | 실제 좌석 번호 |
+| | table_number | INTEGER | NOT NULL, UNIQUE, CHECK > 0 | 손님이 보는 실제 좌석 번호(1층 1xx, 2층 2xx) |
 | | capacity | INTEGER | NOT NULL, CHECK > 0 | 수용 인원 |
 | menus | id | INTEGER | PK | 메뉴 ID |
 | | name | TEXT | NOT NULL | 메뉴명 |
@@ -74,6 +74,8 @@ FK는 존재하지 않는 카테고리·좌석·메뉴 참조를 차단한다.
 
 이미지는 `python scripts/generate_erd.py`로 현재 스키마 설명에 맞춰 다시 생성할 수 있다.
 
-## 8. 장기 확장 시 고려
+## 8. 알려두는 설계 한계
 
-현재 `orders`는 주문 메뉴 한 줄을 뜻한다. 실제 결제 한 건에 여러 메뉴를 묶고 결제 상태를 관리해야 한다면 다음 단계에서 `orders`(주문 헤더)와 `order_items`(주문 항목)로 나눈다. 이는 현재 B5-1 최소 범위에는 포함하지 않는다.
+- **주문 헤더/라인 미분리.** 현재 `orders`는 주문 메뉴 한 줄을 뜻한다. 실제 결제 한 건에 여러 메뉴를 묶고 결제 상태를 관리해야 한다면 `orders`(주문 헤더)와 `order_items`(주문 항목)로 나눈다. B5-1의 4테이블 범위 밖이라 넘긴다.
+- **주문 시점 가격을 저장하지 않음.** `orders`가 `menu_id`로만 참조하므로 `menus.price`를 수정하면 과거 매출(KPI 1·2)이 함께 다시 계산된다. 정산·환불이 있는 운영 시스템이라면 `orders.unit_price NOT NULL CHECK (unit_price >= 0)`를 두고 `SUM(unit_price * quantity)`로 집계한다. 이번에는 의도적 생략이고 선택 근거를 [`docs/decision-log.md`](docs/decision-log.md) D11에 남겼다.
+- **상태 전이 규칙은 DDL에 없다.** `COOKING → SERVED` 같은 순서를 DB가 강제하지는 않고, 쿼리가 `WHERE status = ...` 가드로 방어한다. 상태를 늘리면 CHECK 목록도 함께 고쳐야 한다.

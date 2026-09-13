@@ -55,11 +55,12 @@
 - 적용: Query 13은 주문 18이 `COOKING`일 때만 `SERVED`로 바꾸고, Query 14는 주문 25가 `CANCELLED`일 때만 삭제한다.
 - 결과: 각각 정확히 1행만 변경됐다.
 
-### 2.6 스크린샷과 SQL 결과가 서로 달랐음 — Issue #2
+### 2.6 실행 결과 이미지와 SQL 결과가 서로 달랐음 — Issue #2
 
 - 문제: 과거 실행 결과 이미지와 현재 SQL이 같은 실행에서 만들어졌다는 보장이 없었다.
-- 해결: `scripts/verify_project.py`가 새 DB 하나에서 Query 1~15를 순서대로 실행해 텍스트를 만들고, `scripts/generate_screenshots.py`가 그 텍스트로 이미지를 만든다.
+- 해결: `scripts/verify_project.py`가 새 DB 하나에서 Query 1~15를 순서대로 실행해 텍스트를 만들고, `scripts/generate_captures.py`가 그 텍스트로 이미지를 만든다.
 - 결과: Query 1~15 이미지 15개와 FK 오류 이미지 1개를 다시 만들었다.
+- 추가 조치(2026-09-13): 사람이 DB 도구를 써서 찍은 화면과 구분되도록 디렉터리를 `evidence/screenshots`에서 `evidence/captures`로 이름을 바꾸고, 이미지 머리글에 "스크립트가 텍스트 증거를 렌더링"했다. 미션이 스크린샷 **또는** 결과 텍스트를 허용하므로 원본은 텍스트이고 이미지는 복제본이다.
 
 ### 2.7 Query 5/9/12 분석이 실제 SQL과 달랐음 — Issue #2
 
@@ -75,7 +76,7 @@
 
 - 문제: 작은 seed 결과만 보고 어느 방법이 항상 빠르다고 말할 수 없다.
 - 해결: 두 SQL의 결과를 정렬된 튜플 집합으로 비교하고 SQLite `EXPLAIN QUERY PLAN`도 함께 저장했다.
-- 결론: 현재 데이터에서는 결과 집합이 같은 5행이다. 성능 우위는 DB, 통계, 인덱스, 데이터 분포에 따라 달라지므로 단정하지 않는다.
+- 결론: Q13·Q14가 지난 뒤의 상태(§2.14)에서 두 결과 집합은 같은 4행이다. 성능 우위는 DB, 통계, 인덱스, 데이터 분포에 따라 달라지므로 단정하지 않는다.
 
 ### 2.10 인덱스 효과 설명 범위 — Issue #3
 
@@ -109,6 +110,20 @@
 - 증상 3: 기능 브랜치를 push할 때 로컬 `origin` 정보가 없어 `does not appear to be a git repository` 오류가 발생했다.
 - 해결 3: 토큰이 들어가지 않은 공개 HTTPS 원격 주소를 `origin`으로 다시 등록한 뒤 push를 재실행했다.
 
+### 2.14 문서가 SQL과 어긋나기 시작한 지점 전량 처리 — 2026-09-13
+
+- 발견: `bonus_report.md`가 `4_bonus_queries.sql`에 없는 SQL(`order_time BETWEEN '2025-06-03 ...'`)을 설명하고 있었다. KPI 1도 보고서엔 CTE 버전, 파일엔 JOIN 버전으로 SQL 자체가 달랐다.
+- 발견: README의 sqlite3 CLI 순서(스키마 → seed → Q1~Q15 → 보너스)로 실행하면 보너스 1이 4행·혼잡도 16.7%가 되는데, 증거는 새 DB 기준(5행·20.8%)이었다. "SQL과 결과 파일의 데이터가 일치해야 함"에 걸리는 종류다.
+- 발견: 기본 조회 4개 중 `LIMIT`이 Q01에만 있었다. 루브릭의 "WHERE·ORDER BY·LIMIT 포함"을 좁게 읽으면 감점 항목이다.
+- 발견: `store_tables`는 12행 전부 `id == table_number`라 자연키/대리키와 `UNIQUE`의 역할을 데이터로 보여주지 못했다.
+- 해결:
+  - 보너스·KPI를 Q1~Q15와 같은 연결·같은 순서로 실행하도록 `verify_project.py`를 바꿨다. 이제 문서·증거·수동 실행이 같은 상태를 본다(근거: `decision-log.md` D13).
+  - README와 `bonus_report.md`를 현재 SQL 본문으로 다시 썼다.
+  - Q02·Q03·Q04에 `LIMIT`을 넣고, 기본 조회 4개가 세 절을 모두 포함하는지 자동 검사로 승격했다.
+  - 좌석 번호를 1층 `1xx`·2층 `2xx`로 입력해 `id`와 분리했다. UNIQUE 차단 테스트도 실제 값(`101`)을 쓰도록 고쳤다.
+  - 저장소 밖 절대 경로를 문서에서 전부 제거하고, markdown에 그런 경로·끊긴 링크가 있으면 검증이 실패하게 했다.
+  - `verify_project.py`에 문서 동기화 검사를 넣어, 같은 종류의 어긋남이 다시 생기면 PASS가 나오지 않는다.
+
 ## 3. 자동 검증 범위
 
 `python scripts/verify_project.py`는 다음을 검사한다.
@@ -124,6 +139,10 @@
 - KPI 3종 실행
 - FK, status CHECK, quantity CHECK, table number UNIQUE 위반 차단
 - 인덱스 존재와 현재 실행 계획
+- `bonus_report.md`가 인용한 SQL이 `4_bonus_queries.sql` 본문과 문자 단위로 같은지
+- README의 Query 설명·증거 링크가 SQL 주석과 실 파일에 대응하는지
+- markdown 링크가 실재하고 저장소 밖 경로를 인용하지 않는지
+- `evidence/captures` 이미지 16개 존재와 오래된 `evidence/screenshots` 잔존 여부
 
 최종 문구는 `B5-1 AUTOMATED VERIFICATION: ALL PASS`다.
 
@@ -133,7 +152,7 @@
 scripts/check_all.sh
 ```
 
-이 명령은 검증 → 스크린샷 → ERD → `git diff --check` 순서로 실행한다.
+이 명령은 검증 → 실행 결과 캡처 → ERD → `git diff --check` 순서로 실행한다.
 
 ## 5. 프로젝트 유지보수 및 관리
 

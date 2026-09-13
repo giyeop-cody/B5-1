@@ -93,8 +93,10 @@ SQLite는 연결마다 이 설정을 켜야 FK 위반을 차단한다.
 SQLite에는 별도 DATETIME 저장 클래스가 없다. 이 프로젝트는 다음 ISO 형식 문자열로 통일한다.
 
 ```text
-2025-06-03 18:05:00
+2026-06-24 18:10:00
 ```
+
+`2_data.sql`의 `order_time`이 전부 이 형식이다. 형식이 하나면 문자열 비교가 시간순 비교와 같은 결과를 준다.
 
 같은 형식을 쓰면 시간순 문자열 정렬이 가능하다.
 
@@ -190,7 +192,7 @@ CREATE INDEX IF NOT EXISTS idx_order_status
 ON orders (status);
 ```
 
-status 조건이 자주 쓰여 후보 인덱스를 만들었다. 현재 검증 DB의 실행 계획은 다음과 같다.
+`status`로 자르는 조회가 Q03·B01·B02처럼 여러 번 반복되고, 주문 테이블은 읽기가 쓰기보다 많은 쪽이라 후보로 잡았다. 현재 검증 DB의 실행 계획은 다음과 같다.
 
 ```text
 SEARCH orders USING INDEX idx_order_status (status=?)
@@ -198,9 +200,11 @@ SEARCH orders USING INDEX idx_order_status (status=?)
 
 주의:
 
-- 인덱스는 저장 공간을 사용한다.
-- INSERT/UPDATE/DELETE 때 인덱스도 관리해야 한다.
-- 데이터와 통계에 따라 효과가 다르므로 항상 빠르다고 말하지 않는다.
+- 인덱스는 저장 공간을 사용하고 INSERT/UPDATE/DELETE 때마다 함께 관리해야 한다.
+- `status`는 허용값이 3개라 선택도가 매우 낮다. 행이 많아지면 SQLite가 인덱스를 무시하고 전체 스캔을 택할 수 있다.
+- 25행에서는 시간 차이가 체감되지 않는다. "인덱스를 만들었다"와 "빨라졌다"는 다른 주장이고, 이 프로젝트는 앞의 사실만 말한다.
+- 실제 운영 후보는 `orders(status, order_time)` 복합 인덱스이거나, PostgreSQL이라면 `WHERE status = 'COOKING'` 부분 인덱스다. SQLite는 부분 인덱스 구문을 지원하지만 이 범위에서는 쓰지 않는다.
+- Q15 다음에 실행되는 보너스 쿼리의 계획에도 이 인덱스가 보인다(`evidence/bonus_01_compare_methods.txt`). 인덱스를 만든 뒤 계획을 다시 보는 순서가 그래서 중요하다.
 
 ## 11. 잘못된 값이 막히는지 직접 확인
 
@@ -209,7 +213,7 @@ SEARCH orders USING INDEX idx_order_status (status=?)
 - 없는 좌석 9999를 참조 → FK 실패
 - `status='INVALID'` → CHECK 실패
 - `quantity=-1` → CHECK 실패
-- 이미 있는 좌석 번호 1 재입력 → UNIQUE 실패
+- 이미 있는 좌석 번호 101 재입력 → UNIQUE 실패
 
 규칙을 DDL에 썼다는 사실만 보지 않고 실제 오류가 나는지 확인한다.
 
@@ -220,7 +224,8 @@ SEARCH orders USING INDEX idx_order_status (status=?)
 - 카테고리는 카테고리 표에 한 번 저장한다.
 - 메뉴는 메뉴 표에 한 번 저장한다.
 - 주문은 메뉴와 좌석 ID를 참조한다.
-- 같은 정보를 여러 행에 복사하지 않아 수정 불일치를 줄인다.
+- 같은 정보를 여러 행에 복사하지 않아 이름·카테고리 수정 불일치를 줄인다.
+- 단, 주문은 예외가 있다. `orders`가 메뉴를 `menu_id`로만 참조하면 나중에 `menus.price`를 바꿨을 때 과거 매출까지 다시 계산된다. 주문 시점 가격은 `orders.unit_price`로 복사해 두는 것이 일반적이고, 이 프로젝트는 그 컬럼을 의도적으로 넣지 않았다(근거: `docs/decision-log.md` D11).
 
 정규화 이론을 지나치게 확장하지 않고 관계가 자연스럽고 질문을 SQL로 풀 수 있는 구조를 목표로 한다.
 
