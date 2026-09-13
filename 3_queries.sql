@@ -2,7 +2,8 @@
 -- 파일명: 3_queries.sql
 -- 설명: 스마트 테이블 오더 시스템 핵심 요구사항 쿼리 15개
 -- 대상 DB: SQLite 3
--- SQLite 전용/차이: LIMIT, PRAGMA, 유연한 DATETIME 저장 방식을 사용한다.
+-- SQLite 전용/차이: LIMIT, PRAGMA, 유연한 DATETIME 저장 방식, `CREATE INDEX IF NOT EXISTS`를 사용한다.
+--                  `ROUND(값, 자리)`는 SQLite·MySQL 서식이고 PostgreSQL은 `ROUND(numeric)`만 받아 자리수를 쓰지 않는다.
 -- 실행 전 1_schema.sql → 2_data.sql 순서로 새 DB를 준비한다.
 -- ============================================================================
 
@@ -15,23 +16,26 @@ WHERE price >= 20000
 ORDER BY price DESC
 LIMIT 5;
 
--- [Q02][기본조회] 이름에 '전골' 또는 '철판'이 포함된 메뉴를 조회한다.
+-- [Q02][기본조회] 이름에 '전골' 또는 '철판'이 포함된 메뉴를 최대 10개 조회한다.
 SELECT name, price
 FROM menus
 WHERE name LIKE '%전골%' OR name LIKE '%철판%'
-ORDER BY id;
+ORDER BY id
+LIMIT 10;
 
--- [Q03][기본조회] 현재 COOKING 상태인 주문을 오래된 주문순으로 조회한다.
+-- [Q03][기본조회] 현재 COOKING 상태인 주문을 오래된 주문순으로 최대 10개 조회한다.
 SELECT id, table_id, menu_id, order_time
 FROM orders
 WHERE status = 'COOKING'
-ORDER BY order_time ASC;
+ORDER BY order_time ASC
+LIMIT 10;
 
--- [Q04][기본조회] 수용 인원이 6명 이상인 좌석을 번호순으로 조회한다.
+-- [Q04][기본조회] 수용 인원이 6명 이상인 좌석 번호를 번호순으로 최대 10개 조회한다.
 SELECT table_number, capacity
 FROM store_tables
 WHERE capacity >= 6
-ORDER BY table_number;
+ORDER BY table_number
+LIMIT 10;
 
 -- [Q05][INNER JOIN] 취소되지 않은 주문에 좌석 번호와 메뉴 정보를 결합한다.
 SELECT t.table_number, m.name AS menu_name, o.quantity, o.status, o.order_time
@@ -110,5 +114,9 @@ WHERE id = 18 AND status = 'COOKING';
 DELETE FROM orders
 WHERE id = 25 AND status = 'CANCELLED';
 
--- [Q15][인덱스] 반복되는 status 필터의 후보 인덱스를 만들고 효과는 실행 계획으로 확인한다.
+-- [Q15][인덱스] 반복되는 status 필터를 위해 `orders(status)` 인덱스를 만들고 근거를 실행 계획으로 남긴다.
+-- 적용 이유: Q03·B01·B02처럼 `status`로 자르는 조회가 파일마다 반복되고, 주문 테이블은 계속 커지는 쓰기보다 읽기가 많은 쪽이다.
+-- 효과의 범위: 아래 실행 계획은 SQLite가 인덱스를 "선택"했다는 사실까지 말한다. 25행에서는 행이 적어 실제 시간 차이가 체감되지 않으므로 빠르다고 주장하지 않는다.
+-- 실제 운영 후보: `status`만으로는 선택도가 낮아(허용값 3종) `orders(status, order_time)` 복합 인덱스나 "아직 서빙 전" 부분 인덱스가 더 자연스럽다.
+-- SQLite 전용: `CREATE INDEX ... IF NOT EXISTS`는 MySQL에 없고, PostgreSQL은 부분 인덱스(`WHERE status='COOKING'`)를 지원한다.
 CREATE INDEX IF NOT EXISTS idx_order_status ON orders (status);

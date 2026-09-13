@@ -13,5 +13,5 @@ SQL: INSERT INTO orders VALUES(997,1,1,-1,'2026-06-24 21:00:00','COOKING')
 ERROR: IntegrityError: CHECK constraint failed: quantity > 0
 
 중복 table_number 차단: PASS
-SQL: INSERT INTO store_tables VALUES(999,1,4)
+SQL: INSERT INTO store_tables VALUES(999,101,4)
 ERROR: IntegrityError: UNIQUE constraint failed: store_tables.table_number

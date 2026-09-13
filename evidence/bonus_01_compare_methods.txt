@@ -4,7 +4,6 @@ JOIN RESULT
 id	name	price
 ----------------------------------------
 1	한우 곱창 전골	32000
-4	치즈 계란말이	12000
 5	참치 마요 주먹밥	5000
 9	차돌 떡볶이	18000
 10	모둠 수제 꼬치	22000
@@ -13,12 +12,11 @@ SUBQUERY RESULT
 id	name	price
 ----------------------------------------
 1	한우 곱창 전골	32000
-4	치즈 계란말이	12000
 5	참치 마요 주먹밥	5000
 9	차돌 떡볶이	18000
 10	모둠 수제 꼬치	22000
 
 SET EQUALITY: PASS
-JOIN PLAN: SCAN o | SEARCH m USING INTEGER PRIMARY KEY (rowid=?) | USE TEMP B-TREE FOR DISTINCT | USE TEMP B-TREE FOR ORDER BY
-SUBQUERY PLAN: SEARCH m USING INTEGER PRIMARY KEY (rowid=?) | LIST SUBQUERY 1 | SCAN o
+JOIN PLAN: SEARCH o USING INDEX idx_order_status (status=?) | SEARCH m USING INTEGER PRIMARY KEY (rowid=?) | USE TEMP B-TREE FOR DISTINCT | USE TEMP B-TREE FOR ORDER BY
+SUBQUERY PLAN: SEARCH m USING INTEGER PRIMARY KEY (rowid=?) | LIST SUBQUERY 1 | SEARCH o USING INDEX idx_order_status (status=?)
 결론: 현재 결과 집합은 같지만 성능은 DB·통계·데이터 분포에 따라 달라져 단정하지 않는다.

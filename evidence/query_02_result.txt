@@ -1,11 +1,12 @@
-=== Q02 [기본조회] 이름에 '전골' 또는 '철판'이 포함된 메뉴를 조회한다. ===
+=== Q02 [기본조회] 이름에 '전골' 또는 '철판'이 포함된 메뉴를 최대 10개 조회한다. ===
 
 SQL
--- [Q02][기본조회] 이름에 '전골' 또는 '철판'이 포함된 메뉴를 조회한다.
+-- [Q02][기본조회] 이름에 '전골' 또는 '철판'이 포함된 메뉴를 최대 10개 조회한다.
 SELECT name, price
 FROM menus
 WHERE name LIKE '%전골%' OR name LIKE '%철판%'
-ORDER BY id;
+ORDER BY id
+LIMIT 10;
 
 RESULT
 name	price

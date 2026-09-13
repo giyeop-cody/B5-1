@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""B5-1 SQL을 새 SQLite DB에서 실행하고 제출 증거를 재생성한다."""
+"""B5-1 SQL을 새 SQLite DB에서 요구사항 순서대로 실행하고 제출 증거를 재생성한다.
+
+실행 흐름은 README의 sqlite3 CLI 안내와 일부러 같다: 새 DB → 스키마 → seed → Q1~Q15 → 보너스·KPI.
+Q13/Q14가 바꾼 상태를 보너스가 이어받으므로 증거 파일과 수동 실행 결과가 같은 숫자를 낸다.
+검증 대상에는 SQL 실행뿐 아니라 문서 동기화(`bonus_report.md` 인용, README 표기, 링크)도 포함한다.
+"""
 
 from __future__ import annotations
 
@@ -97,6 +102,16 @@ def clean_sql(sql: str) -> str:
     return "\n".join(lines).strip()
 
 
+def leading_keyword(sql: str) -> str:
+    """주석을 건너뛰고 SQL의 첫 키워드를 돌려준다. DDL과 DML의 증거 표기를 구분한다."""
+    for line in sql.splitlines():
+        stripped = line.strip()
+        if not stripped or stripped.startswith("--"):
+            continue
+        return stripped.split(None, 1)[0].upper()
+    return ""
+
+
 def write_result(case: SqlCase, columns: list[str], rows: list[sqlite3.Row | tuple], extra: str = "") -> None:
     number = int(case.number[1:])
     content = [
@@ -111,6 +126,56 @@ def write_result(case: SqlCase, columns: list[str], rows: list[sqlite3.Row | tup
     if extra:
         content.extend(["", "VERIFICATION", extra])
     (EVIDENCE / f"query_{number:02d}_result.txt").write_text("\n".join(content) + "\n", encoding="utf-8")
+
+
+def normalize_sql(sql: str) -> str:
+    """주석을 지우고 공백을 한 칸으로 줄여 문서 대조용 문자열로 만든다."""
+    lines = [line for line in sql.splitlines() if not line.strip().startswith("--")]
+    return re.sub(r"\s+", " ", " ".join(lines)).strip()
+
+
+def markdown_files() -> list[Path]:
+    return sorted(path for path in ROOT.rglob("*.md") if ".git" not in path.parts)
+
+
+def verify_docs_sync(core_cases: list[SqlCase], bonus_cases: list[SqlCase]) -> list[str]:
+    """문서가 실제 SQL·설명·증거와 어긋나지 않았는지 대조한다.
+
+    문서와 SQL을 따로 고치면 반드시 어긋난다(과거 지적 R1). 이 검사가 그 경로를 차단한다.
+    """
+    report = normalize_sql(read("bonus_report.md"))
+    for case in bonus_cases:
+        assert normalize_sql(case.sql).rstrip(";") in report, (
+            f"{case.number}의 SQL 본문이 bonus_report.md에 그대로 없다."
+        )
+    checks = [f"bonus_report_quotes_all_bonus_sql={len(bonus_cases)} PASS"]
+
+    readme = read("README.md")
+    for case in core_cases:
+        assert case.description in readme, f"{case.number}의 한 줄 설명이 README 표와 다르다."
+        for suffix in (f"evidence/query_{int(case.number[1:]):02d}_result.txt",
+                       f"evidence/captures/query_{int(case.number[1:]):02d}.png"):
+            assert suffix in readme, f"README가 {suffix}를 링크하지 않는다."
+    checks.append(f"readme_uses_sql_descriptions_and_links={len(core_cases)} PASS")
+
+    for path in markdown_files():
+        text = path.read_text(encoding="utf-8")
+        assert "/home/" not in text and not re.search(r"\]\(/", text), (
+            f"{path.relative_to(ROOT)}: 저장소 밖 절대 경로를 참조한다. 채점자가 열 수 없다."
+        )
+        for target in re.findall(r"\]\(([^)#][^)]*)\)", text):
+            if target.startswith(("http://", "https://", "mailto:")):
+                continue
+            assert (path.parent / target).resolve().exists(), (
+                f"{path.relative_to(ROOT)}: 끊긴 링크 {target}"
+            )
+    checks.append(f"markdown_links_and_no_external_paths={len(markdown_files())} PASS")
+
+    assert not (EVIDENCE / "screenshots").exists(), "오래된 evidence/screenshots 디렉터리가 남아 있다."
+    captures = sorted((EVIDENCE / "captures").glob("*.png"))
+    assert len(captures) == 16 and all(path.stat().st_size > 0 for path in captures)
+    checks.append("captures=16_and_screenshots_dir_removed PASS")
+    return checks
 
 
 def verify_schema(connection: sqlite3.Connection) -> list[str]:
@@ -161,8 +226,49 @@ def verify_schema(connection: sqlite3.Connection) -> list[str]:
     return checks
 
 
+def clause(text: str, keyword: str) -> bool:
+    return re.search(rf"\b{keyword}\b", text, re.IGNORECASE) is not None
+
+
+def verify_rubric_coverage(cases: list[SqlCase], categories: Counter[str]) -> list[str]:
+    """범주 수량뿐 아니라 PDF가 괄호에 적은 절(clause) 조건까지 확인한다."""
+    by_category: dict[str, list[SqlCase]] = {}
+    for case in cases:
+        by_category.setdefault(case.category, []).append(case)
+
+    for case in by_category["기본조회"]:
+        sql = clean_sql(case.sql).upper()
+        assert clause(sql, "WHERE") and clause(sql, "ORDER BY") and clause(sql, "LIMIT"), (
+            f"{case.number}: 기본 조회는 WHERE·ORDER BY·LIMIT을 모두 포함해야 합니다."
+        )
+
+    aggregate_sql = " ".join(clean_sql(case.sql).upper() for case in by_category["집계"])
+    assert clause(aggregate_sql, "GROUP BY")
+    assert sum(clause(aggregate_sql, fn) for fn in ("COUNT", "SUM", "AVG")) >= 2, (
+        "집계는 COUNT·SUM·AVG 중 2개 이상을 사용해야 합니다."
+    )
+    assert len(by_category["서브쿼리"]) >= 1 and clause(
+        clean_sql(by_category["서브쿼리"][0].sql).upper(), "SELECT"
+    )
+
+    mutation_sql = " ".join(
+        clean_sql(case.sql).upper()
+        for category in ("수정", "삭제")
+        for case in by_category[category]
+    )
+    assert clause(mutation_sql, "UPDATE") and clause(mutation_sql, "DELETE")
+
+    assert any(clause(clean_sql(case.sql).upper(), "INNER JOIN") for case in by_category["INNER JOIN"])
+    assert any(clause(clean_sql(case.sql).upper(), "LEFT JOIN") for case in by_category["LEFT JOIN"])
+    return [
+        "basic_4_all_have_where_orderby_limit PASS",
+        "aggregate_group_by_and_2_of_count_sum_avg PASS",
+        "subquery_update_delete_present PASS",
+    ]
+
+
 def verify_query_distribution(cases: list[SqlCase]) -> list[str]:
-    """공식 요구사항이 정의하는 15개 SQL의 번호·설명·범주 수량을 확인한다."""
+    """공식 요구사항이 정의하는 15개 SQL의 번호·설명·범주 수량과 절 조건을 확인한다."""
     assert [case.number for case in cases] == [f"Q{number:02d}" for number in range(1, 16)]
     assert all(case.description.strip() for case in cases), "모든 쿼리에 한 줄 설명이 필요합니다."
 
@@ -176,6 +282,7 @@ def verify_query_distribution(cases: list[SqlCase]) -> list[str]:
         f"basic:{categories['기본조회']},join:{join_count},aggregate:{categories['집계']},"
         f"subquery:{categories['서브쿼리']},mutation:{categories['수정'] + categories['삭제']},"
         f"index:{categories['인덱스']} PASS",
+        *verify_rubric_coverage(cases, categories),
     ]
 
 
@@ -190,6 +297,9 @@ def execute_core(connection: sqlite3.Connection, cases: list[SqlCase]) -> list[s
         if cursor.description:
             columns = [column[0] for column in cursor.description]
             rows = cursor.fetchall()
+        elif leading_keyword(case.sql) in {"CREATE", "DROP", "ALTER"}:
+            columns = ["statement"]
+            rows = [(f"{leading_keyword(case.sql)} 성공 · 반환 행 없음",)]
         else:
             columns = ["rows_affected"]
             rows = [(cursor.rowcount,)]
@@ -257,7 +367,7 @@ def verify_integrity(connection: sqlite3.Connection) -> list[str]:
         integrity_case(
             connection,
             "중복 table_number 차단",
-            "INSERT INTO store_tables VALUES(999,1,4)",
+            "INSERT INTO store_tables VALUES(999,101,4)",
             "UNIQUE constraint failed",
         ),
     ]
@@ -330,21 +440,24 @@ def main() -> None:
     checks = verify_schema(schema_connection)
     schema_connection.close()
 
-    core_connection = new_database(db_path)
-    checks.extend(execute_core(core_connection, split_cases("3_queries.sql", CORE_MARKER)))
-    core_connection.close()
-
-    bonus_connection = new_database(db_path)
-    checks.extend(verify_integrity(bonus_connection))
-    checks.extend(execute_bonus(bonus_connection, split_cases("4_bonus_queries.sql", BONUS_MARKER)))
-    bonus_connection.close()
+    # README의 sqlite3 CLI 순서(스키마 → seed → Q1~Q15 → 보너스)와 같은 흐름으로 한 연결에서 실행한다.
+    # 그래서 Q13/Q14로 바뀐 뒤 상태를 보너스·KPI 증거도 그대로 담는다.
+    core_cases = split_cases("3_queries.sql", CORE_MARKER)
+    bonus_cases = split_cases("4_bonus_queries.sql", BONUS_MARKER)
+    connection = new_database(db_path)
+    checks.extend(execute_core(connection, core_cases))
+    checks.append("bonus_runs_on_post_mutation_db PASS")
+    checks.extend(verify_integrity(connection))
+    checks.extend(execute_bonus(connection, bonus_cases))
+    connection.close()
+    checks.extend(verify_docs_sync(core_cases, bonus_cases))
 
     # 임시 디렉터리의 무작위 경로를 증거 파일에 쓰면 실행할 때마다
     # 내용이 달라진다. 새 DB를 썼다는 사실만 안정적으로 기록한다.
     summary = [
         "B5-1 AUTOMATED VERIFICATION: ALL PASS",
         f"SQLite version={sqlite3.sqlite_version}",
-        "database=fresh SQLite database created for this run",
+        "database=fresh SQLite database, one DB reused for core then bonus (README order)",
         "",
         *checks,
     ]

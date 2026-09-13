@@ -25,4 +25,4 @@ capacity	table_count	avg_revenue_per_table
 KPI 3 KITCHEN CONGESTION
 active_orders	cooking_orders	kitchen_congestion_rate
 --------------------------------------------------------------
-24	5	20.8
+24	4	16.7

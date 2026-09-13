@@ -1,15 +1,16 @@
-=== Q04 [기본조회] 수용 인원이 6명 이상인 좌석을 번호순으로 조회한다. ===
+=== Q04 [기본조회] 수용 인원이 6명 이상인 좌석 번호를 번호순으로 최대 10개 조회한다. ===
 
 SQL
--- [Q04][기본조회] 수용 인원이 6명 이상인 좌석을 번호순으로 조회한다.
+-- [Q04][기본조회] 수용 인원이 6명 이상인 좌석 번호를 번호순으로 최대 10개 조회한다.
 SELECT table_number, capacity
 FROM store_tables
 WHERE capacity >= 6
-ORDER BY table_number;
+ORDER BY table_number
+LIMIT 10;
 
 RESULT
 table_number	capacity
 ----------------------------------------
-7	6
-8	6
-9	8
+201	6
+202	6
+203	8

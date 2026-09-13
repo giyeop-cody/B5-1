@@ -1,13 +1,17 @@
-=== Q15 [인덱스] 반복되는 status 필터의 후보 인덱스를 만들고 효과는 실행 계획으로 확인한다. ===
+=== Q15 [인덱스] 반복되는 status 필터를 위해 `orders(status)` 인덱스를 만들고 근거를 실행 계획으로 남긴다. ===
 
 SQL
--- [Q15][인덱스] 반복되는 status 필터의 후보 인덱스를 만들고 효과는 실행 계획으로 확인한다.
+-- [Q15][인덱스] 반복되는 status 필터를 위해 `orders(status)` 인덱스를 만들고 근거를 실행 계획으로 남긴다.
+-- 적용 이유: Q03·B01·B02처럼 `status`로 자르는 조회가 파일마다 반복되고, 주문 테이블은 계속 커지는 쓰기보다 읽기가 많은 쪽이다.
+-- 효과의 범위: 아래 실행 계획은 SQLite가 인덱스를 "선택"했다는 사실까지 말한다. 25행에서는 행이 적어 실제 시간 차이가 체감되지 않으므로 빠르다고 주장하지 않는다.
+-- 실제 운영 후보: `status`만으로는 선택도가 낮아(허용값 3종) `orders(status, order_time)` 복합 인덱스나 "아직 서빙 전" 부분 인덱스가 더 자연스럽다.
+-- SQLite 전용: `CREATE INDEX ... IF NOT EXISTS`는 MySQL에 없고, PostgreSQL은 부분 인덱스(`WHERE status='COOKING'`)를 지원한다.
 CREATE INDEX IF NOT EXISTS idx_order_status ON orders (status);
 
 RESULT
-rows_affected
+statement
 ----------------------------------------
--1
+CREATE 성공 · 반환 행 없음
 
 VERIFICATION
 idx_order_status exists PASS

@@ -11,6 +11,6 @@ ORDER BY t.table_number;
 RESULT
 table_number	capacity
 ----------------------------------------
-2	2
-11	2
-12	4
+102	2
+107	2
+108	4

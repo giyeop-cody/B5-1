@@ -1,6 +1,6 @@
 B5-1 AUTOMATED VERIFICATION: ALL PASS
 SQLite version=3.46.1
-database=fresh SQLite database created for this run
+database=fresh SQLite database, one DB reused for core then bonus (README order)
 
 tables=4 PASS: menu_categories, menus, orders, store_tables
 menu_categories rows=10 PASS
@@ -19,6 +19,9 @@ PRAGMA foreign_keys=ON PASS
 core_queries=15 PASS
 query_numbers_and_descriptions=15 PASS
 query_distribution=basic:4,join:4,aggregate:3,subquery:1,mutation:2,index:1 PASS
+basic_4_all_have_where_orderby_limit PASS
+aggregate_group_by_and_2_of_count_sum_avg PASS
+subquery_update_delete_present PASS
 Q01 PASS rows=4
 Q02 PASS rows=2
 Q03 PASS rows=5
@@ -35,9 +38,14 @@ Q13 PASS rows=1
 Q14 PASS rows=1
 Q15 PASS rows=1
 core_text_evidence=15 PASS
+bonus_runs_on_post_mutation_db PASS
 FK 없는 좌석 참조 차단: PASS
 허용되지 않은 status 차단: PASS
 음수 quantity 차단: PASS
 중복 table_number 차단: PASS
 bonus_join_subquery_equality PASS
 bonus_kpi_3 PASS
+bonus_report_quotes_all_bonus_sql=5 PASS
+readme_uses_sql_descriptions_and_links=15 PASS
+markdown_links_and_no_external_paths=13 PASS
+captures=16_and_screenshots_dir_removed PASS
