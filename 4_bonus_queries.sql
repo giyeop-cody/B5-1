@@ -1,6 +1,7 @@
 -- ============================================================================
 -- 파일명: 4_bonus_queries.sql
--- 설명: B5-1 보너스 1·3 검증용 SQL
+-- 설명: B5-1 보너스 1·2·3 검증용 SQL
+--       보너스 2(일부러 무결성 깨뜨리기)는 이 파일의 [F01]~[F04]에 있다.
 -- 대상 DB: SQLite 3
 -- 실행 순서: 1_schema.sql → 2_data.sql → 3_queries.sql → 4_bonus_queries.sql
 --            Q13(UPDATE)·Q14(DELETE)가 적용된 DB에서 실행한다. `evidence/bonus_*.txt`도
@@ -69,3 +70,23 @@ SELECT COUNT(*) AS active_orders,
        ) AS kitchen_congestion_rate
 FROM orders
 WHERE status != 'CANCELLED';
+
+-- ----------------------------------------------------------------------------
+-- [보너스 2] 일부러 무결성 깨뜨리기: 아래 4문은 "반드시 실패해야 하는" 입력이다.
+-- sqlite3 CLI로 이 파일을 실행하면 각 문이 Runtime error(FOREIGN KEY / CHECK /
+-- UNIQUE constraint failed)를 출력하는데, 그 오류가 곧 차단 증거다.
+-- scripts/verify_project.py는 이 4문을 파일에서 읽어 그대로 실행하고
+-- sqlite3.IntegrityError가 발생하는지 assert한 뒤 rollback하므로 DB는 깨지지 않는다.
+-- ----------------------------------------------------------------------------
+
+-- [F01][FK 위반] 존재하지 않는 좌석 9999를 참조하는 주문 → FOREIGN KEY constraint failed 기대
+INSERT INTO orders VALUES (999, 9999, 1, 1, '2026-06-24 21:00:00', 'COOKING');
+
+-- [F02][CHECK 위반] 허용되지 않은 상태 'INVALID' 입력 → CHECK constraint failed: status IN (...) 기대
+INSERT INTO orders VALUES (998, 1, 1, 1, '2026-06-24 21:00:00', 'INVALID');
+
+-- [F03][CHECK 위반] 음수 수량 -1 입력 → CHECK constraint failed: quantity > 0 기대
+INSERT INTO orders VALUES (997, 1, 1, -1, '2026-06-24 21:00:00', 'COOKING');
+
+-- [F04][UNIQUE 위반] 이미 있는 좌석 번호 101 재입력 → UNIQUE constraint failed: store_tables.table_number 기대
+INSERT INTO store_tables VALUES (999, 101, 4);

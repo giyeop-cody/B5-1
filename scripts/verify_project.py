@@ -20,6 +20,15 @@ ROOT = Path(__file__).resolve().parents[1]
 EVIDENCE = ROOT / "evidence"
 CORE_MARKER = re.compile(r"-- \[(Q\d{2})\]\[([^\]]+)\] (.+)")
 BONUS_MARKER = re.compile(r"-- \[(B\d{2})\]\[([^\]]+)\] (.+)")
+FAIL_MARKER = re.compile(r"-- \[(F\d{2})\]\[([^\]]+)\] (.+)")
+# 보너스 2(일부러 무결성 깨뜨리기)의 SQL 본문은 4_bonus_queries.sql [F01]~[F04]에 있다.
+# 여기에는 "어떤 오류로 차단되어야 하는가"만 대응표로 둔다.
+FAIL_EXPECTED = {
+    "F01": ("FK 없는 좌석 참조 차단", "FOREIGN KEY"),
+    "F02": ("허용되지 않은 status 차단", "CHECK constraint failed"),
+    "F03": ("음수 quantity 차단", "CHECK constraint failed"),
+    "F04": ("중복 table_number 차단", "UNIQUE constraint failed"),
+}
 EXPECTED_MINIMUM_ROWS = {
     "menu_categories": 10,
     "store_tables": 10,
@@ -344,32 +353,27 @@ def integrity_case(connection: sqlite3.Connection, name: str, sql: str, expected
     raise AssertionError(f"{name}: 잘못된 데이터가 허용됐습니다.")
 
 
+def sql_body(sql: str) -> str:
+    """주석 줄을 제거한 순수 SQL 본문만 돌려준다(증거 파일에 주석이 섞이지 않게)."""
+    return "\n".join(
+        line for line in sql.splitlines() if not line.strip().startswith("--")
+    ).strip()
+
+
 def verify_integrity(connection: sqlite3.Connection) -> list[str]:
+    """보너스 2: 4_bonus_queries.sql의 [F01]~[F04]를 읽어 위반이 차단되는지 실증한다.
+
+    SQL 본문은 스크립트가 아니라 SQL 파일이 단일 진실 공급원(SSOT)이다.
+    """
+    fail_cases = split_cases("4_bonus_queries.sql", FAIL_MARKER)
+    assert [case.number for case in fail_cases] == ["F01", "F02", "F03", "F04"], (
+        f"무결성 파괴 테스트는 F01~F04 네 개여야 합니다: "
+        f"{[case.number for case in fail_cases]}"
+    )
     tests = [
-        integrity_case(
-            connection,
-            "FK 없는 좌석 참조 차단",
-            "INSERT INTO orders VALUES(999,9999,1,1,'2026-06-24 21:00:00','COOKING')",
-            "FOREIGN KEY",
-        ),
-        integrity_case(
-            connection,
-            "허용되지 않은 status 차단",
-            "INSERT INTO orders VALUES(998,1,1,1,'2026-06-24 21:00:00','INVALID')",
-            "CHECK constraint failed",
-        ),
-        integrity_case(
-            connection,
-            "음수 quantity 차단",
-            "INSERT INTO orders VALUES(997,1,1,-1,'2026-06-24 21:00:00','COOKING')",
-            "CHECK constraint failed",
-        ),
-        integrity_case(
-            connection,
-            "중복 table_number 차단",
-            "INSERT INTO store_tables VALUES(999,101,4)",
-            "UNIQUE constraint failed",
-        ),
+        integrity_case(connection, FAIL_EXPECTED[case.number][0],
+                       sql_body(case.sql), FAIL_EXPECTED[case.number][1])
+        for case in fail_cases
     ]
     (EVIDENCE / "bonus_02_fk_error_test.txt").write_text(
         "=== INTEGRITY CONSTRAINT TESTS ===\n\n" + "\n\n".join(tests) + "\n",

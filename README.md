@@ -51,7 +51,7 @@
 ├── 1_schema.sql                 # 4개 테이블과 제약조건
 ├── 2_data.sql                   # 10/12/16/25행 seed
 ├── 3_queries.sql                # 핵심 Query 1~15
-├── 4_bonus_queries.sql          # 동치 비교 2개 + KPI 3개
+├── 4_bonus_queries.sql          # 동치 비교 2개 + KPI 3개 + 무결성 파괴 테스트 4개(F01~F04)
 ├── QUEST.md                     # 공식 PDF 기준 요구사항 정리
 ├── architecture_design.md       # 데이터 모델·스키마 설명
 ├── bonus_report.md              # 보너스 SQL과 실제 결과 분석
@@ -171,6 +171,8 @@ WHERE id = 25 AND status = 'CANCELLED'
 | CHECK | COOKING/SERVED/CANCELLED 외 상태 | `status='INVALID'` 차단 PASS |
 
 ![FK 무결성 오류 실증](evidence/captures/bonus_fk_error.png)
+
+차단 테스트 4개의 SQL 원문은 [`4_bonus_queries.sql`](4_bonus_queries.sql)의 `[F01]~[F04]`에 있다(보너스 2). 이 파일을 sqlite3 CLI로 실행하면 각 문장이 `FOREIGN KEY`·`CHECK`·`UNIQUE` constraint failed 런타임 오류를 출력하는데, 그 오류가 곧 차단 증거다. `verify_project.py`는 같은 4문을 파일 본문에서 읽어 실행하고 `IntegrityError` 발생을 assert한 뒤 rollback하므로 검증 중에 DB가 실제로 깨지지는 않는다.
 
 ## 증거의 종류와 출처
 
