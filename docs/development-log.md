@@ -124,6 +124,12 @@
   - 저장소 밖 절대 경로를 문서에서 전부 제거하고, markdown에 그런 경로·끊긴 링크가 있으면 검증이 실패하게 했다.
   - `verify_project.py`에 문서 동기화 검사를 넣어, 같은 종류의 어긋남이 다시 생기면 PASS가 나오지 않는다.
 
+### 2.15 무결성 파괴 테스트를 SQL 스크립트로 이동 — 2026-09-15
+
+- 발견: 보너스 2("일부러 FK 오류 입력을 시도하고 차단 이유 기록")의 위반 SQL 4발이 `scripts/verify_project.py` 안에만 하드코딩되어 있었다. SQL 산출물(`*.sql`)만 검토하는 채점자/리뷰어는 차단 시도의 원문을 찾을 수 없었다.
+- 해결: `4_bonus_queries.sql` 끝부분에 `[F01]~[F04]` 섹션으로 위반 INSERT 4발을 옮기고, `verify_project.py`의 `verify_integrity()`가 마커를 파싱해 **파일 본문에서** SQL을 읽어 실행하도록 변경(SSOT 유지). Python 측에는 "어떤 오류로 차단되어야 하는가" 대응표만 남겼다.
+- 검증: `scripts/check_all.sh` ALL PASS, `evidence/bonus_02_fk_error_test.txt`와 `evidence/captures/bonus_fk_error.png`가 새 SQL 본문으로 재생성됨.
+
 ## 3. 자동 검증 범위
 
 `python scripts/verify_project.py`는 다음을 검사한다.

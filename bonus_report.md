@@ -4,6 +4,7 @@
 - 실행 결과 원본: [`evidence/bonus_01_compare_methods.txt`](evidence/bonus_01_compare_methods.txt) · [`evidence/bonus_03_kpi_metrics.txt`](evidence/bonus_03_kpi_metrics.txt)
 - 실행 상태: `1_schema.sql → 2_data.sql → 3_queries.sql → 4_bonus_queries.sql` 순서, **Q13·Q14의 변경이 적용된 뒤의 같은 DB**
 - 이 문서의 SQL 인용문은 `python scripts/verify_project.py`가 `4_bonus_queries.sql`과 대조해 어긋나면 검사가 실패한다.
+- 보너스 2(일부러 무결성 깨뜨리기)의 SQL 원문은 이 보고서가 아닌 [`4_bonus_queries.sql`](4_bonus_queries.sql)의 `[F01]~[F04]`에 있고, 증거는 [`evidence/bonus_02_fk_error_test.txt`](evidence/bonus_02_fk_error_test.txt)다.
 
 ## 0. 실행 상태를 먼저 정하는 이유
 
