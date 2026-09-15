@@ -45,6 +45,7 @@ FK 없는 좌석 참조 차단: PASS
 중복 table_number 차단: PASS
 bonus_join_subquery_equality PASS
 bonus_kpi_3 PASS
+inline_evidence=core:15,bonus+fail:9 PASS
 bonus_report_quotes_all_bonus_sql=5 PASS
 readme_uses_sql_descriptions_and_links=15 PASS
 markdown_links_and_no_external_paths=13 PASS

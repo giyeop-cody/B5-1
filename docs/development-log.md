@@ -130,6 +130,13 @@
 - 해결: `4_bonus_queries.sql` 끝부분에 `[F01]~[F04]` 섹션으로 위반 INSERT 4발을 옮기고, `verify_project.py`의 `verify_integrity()`가 마커를 파싱해 **파일 본문에서** SQL을 읽어 실행하도록 변경(SSOT 유지). Python 측에는 "어떤 오류로 차단되어야 하는가" 대응표만 남겼다.
 - 검증: `scripts/check_all.sh` ALL PASS, `evidence/bonus_02_fk_error_test.txt`와 `evidence/captures/bonus_fk_error.png`가 새 SQL 본문으로 재생성됨.
 
+### 2.16 실행 증거를 SQL 스크립트 주석으로 내장 — 2026-09-15
+
+- 발견: 증거가 `evidence/*.txt`·PNG로 분리돼 있어, SQL 파일만 열면 각 쿼리의 실행 결과가 보이지 않았다. "SQL 스크립트에 실행 증거가 주석으로 포함됐으면 한다"는 검토 의견.
+- 해결: `verify_project.py`가 각 쿼리 실행 직후 마커 줄 아래 `-- [증거]` 주석(행 수·결과 표·`rows_affected`·차단 오류·집합 동치·실행 계획)을 재생성해 삽입한다. 기존 증거 주석은 재생성 전 제거하므로 축적되지 않고, 타임스탬프를 배제해 연속 실행이 바이트 단위로 같다.
+- 방어: `embed_evidence()`는 파일의 마커 집합과 증거 집합이 일치하는지 assert하므로, 쿼리가 추가·삭제되면 증거 주석 재생성이 실패한다.
+- 검증: `scripts/check_all.sh` ALL PASS, 연속 2회 실행 시 SQL 파일 SHA-256 동일.
+
 ## 3. 자동 검증 범위
 
 `python scripts/verify_project.py`는 다음을 검사한다.
