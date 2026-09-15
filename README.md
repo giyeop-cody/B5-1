@@ -177,6 +177,7 @@ WHERE id = 25 AND status = 'CANCELLED'
 ## 증거의 종류와 출처
 
 - **원본은 텍스트다.** `evidence/query_NN_result.txt`는 `verify_project.py`가 SQL을 실행한 결과를 그대로 쓴 파일로, 실행한 SQL 본문·결과 표·검증 메모(`rows_affected`, `EXPLAIN QUERY PLAN`)를 담는다.
+- **SQL 스크립트 안에도 증거가 산다.** 각 쿼리 마커 아래 `-- [증거]` 주석으로 행 수·결과 표·`rows_affected`·차단 오류·실행 계획이 들어간다. 이 주석은 사람이 쓰는 텍스트가 아니라 `verify_project.py`가 매 실행마다 재생성하는 산출물이므로, SQL을 열면 결과가 보이고 둘이 어긋나는 상태는 존재할 수 없다.
 - **`evidence/captures/*.png`는 사람이 DB 도구에서 찍은 화면이 아니다.** 같은 실행이 만든 텍스트를 `scripts/generate_captures.py`로 렌더링한 복제본이고, 이미지 머리글에 그 사실을 적었다. GUI 캡처와 구분하려고 디렉터리 이름을 `screenshots`가 아니라 `captures`로 정했다.
 - 미션 원문은 "스크린샷 또는 결과 텍스트"를 허용하므로, 채점 기준에 걸리는 것은 텍스트 쪽이다. 실제 DBeaver·`sqlite3` CLI 캡처가 필요하면 위 수동 실행 명령을 그대로 치면 같은 출력이 화면에 나온다.
 

@@ -107,7 +107,8 @@ def tsv(columns: list[str], rows: list[sqlite3.Row | tuple]) -> str:
 
 
 def clean_sql(sql: str) -> str:
-    lines = [line for line in sql.splitlines() if not line.startswith("-- ===")]
+    lines = [line for line in sql.splitlines()
+             if not line.startswith("-- ===") and not line.startswith(EVIDENCE_PREFIX)]
     return "\n".join(lines).strip()
 
 
@@ -295,7 +296,8 @@ def verify_query_distribution(cases: list[SqlCase]) -> list[str]:
     ]
 
 
-def execute_core(connection: sqlite3.Connection, cases: list[SqlCase]) -> list[str]:
+def execute_core(connection: sqlite3.Connection, cases: list[SqlCase],
+                 evidence: dict[str, list[str]]) -> list[str]:
     assert len(cases) == 15, f"핵심 SQL은 15개여야 합니다: {len(cases)}"
     checks = ["core_queries=15 PASS", *verify_query_distribution(cases)]
     for case in cases:
@@ -331,6 +333,18 @@ def execute_core(connection: sqlite3.Connection, cases: list[SqlCase]) -> list[s
             plan = " | ".join(str(row[3]) for row in plan_rows)
             extra = f"idx_order_status exists PASS\nquery_plan={plan}"
 
+        keyword = leading_keyword(case.sql)
+        if keyword in {"UPDATE", "DELETE"}:
+            ev = [f"{EVIDENCE_PREFIX} rows_affected={cursor.rowcount}"]
+        elif cursor.description or keyword in {"CREATE", "DROP", "ALTER"}:
+            ev = [f"{EVIDENCE_PREFIX} rows={len(rows)}"]
+            ev.extend(f"{EVIDENCE_PREFIX} {line}" for line in tsv(columns, rows).splitlines())
+        else:
+            ev = [f"{EVIDENCE_PREFIX} rows={len(rows)}"]
+        if extra:
+            ev.extend(f"{EVIDENCE_PREFIX} {line}" for line in extra.splitlines())
+        evidence[case.number] = ev
+
         write_result(case, columns, rows, extra)
         checks.append(f"{case.number} PASS rows={len(rows)}")
 
@@ -341,14 +355,16 @@ def execute_core(connection: sqlite3.Connection, cases: list[SqlCase]) -> list[s
     return checks
 
 
-def integrity_case(connection: sqlite3.Connection, name: str, sql: str, expected: str) -> str:
+def integrity_case(connection: sqlite3.Connection, name: str, sql: str,
+                   expected: str) -> tuple[str, list[str]]:
     try:
         connection.execute(sql)
     except sqlite3.IntegrityError as error:
         connection.rollback()
         message = str(error)
         assert expected in message, (name, message, expected)
-        return f"{name}: PASS\nSQL: {sql}\nERROR: {type(error).__name__}: {message}"
+        text = f"{name}: PASS\nSQL: {sql}\nERROR: {type(error).__name__}: {message}"
+        return text, [f"{EVIDENCE_PREFIX} 차단 확인: IntegrityError: {message}"]
     connection.rollback()
     raise AssertionError(f"{name}: 잘못된 데이터가 허용됐습니다.")
 
@@ -360,7 +376,42 @@ def sql_body(sql: str) -> str:
     ).strip()
 
 
-def verify_integrity(connection: sqlite3.Connection) -> list[str]:
+EVIDENCE_PREFIX = "-- [증거]"
+ANY_MARKER = re.compile(r"-- \[([QBF]\d{2})\]\[")
+
+
+def strip_evidence(text: str) -> str:
+    """재생성 전에 기존 증거 주석을 모두 제거한다(중복 축적 방지)."""
+    return "\n".join(
+        line for line in text.splitlines() if not line.startswith(EVIDENCE_PREFIX)
+    )
+
+
+def embed_evidence(path: str, evidence: dict[str, list[str]]) -> int:
+    """SQL 파일의 각 쿼리 마커 줄 아래에 실행 증거 주석을 재생성해 삽입한다.
+
+    증거 주석은 사람 손으로 고치는 텍스트가 아니라 이 함수의 출력이다.
+    타임스탬프는 넣지 않아 연속 실행이 바이트 단위로 같아진다.
+    """
+    text = strip_evidence(read(path))
+    out: list[str] = []
+    found: list[str] = []
+    for line in text.splitlines():
+        out.append(line)
+        match = ANY_MARKER.match(line)
+        if match and match.group(1) in evidence:
+            found.append(match.group(1))
+            out.extend(evidence[match.group(1)])
+    assert sorted(found) == sorted(evidence), (
+        f"{path}: 증거 주석을 삽입할 마커가 증거와 일치하지 않습니다. "
+        f"file={sorted(found)} evidence={sorted(evidence)}"
+    )
+    (ROOT / path).write_text("\n".join(out) + "\n", encoding="utf-8")
+    return len(found)
+
+
+def verify_integrity(connection: sqlite3.Connection,
+                     evidence: dict[str, list[str]]) -> list[str]:
     """보너스 2: 4_bonus_queries.sql의 [F01]~[F04]를 읽어 위반이 차단되는지 실증한다.
 
     SQL 본문은 스크립트가 아니라 SQL 파일이 단일 진실 공급원(SSOT)이다.
@@ -370,11 +421,12 @@ def verify_integrity(connection: sqlite3.Connection) -> list[str]:
         f"무결성 파괴 테스트는 F01~F04 네 개여야 합니다: "
         f"{[case.number for case in fail_cases]}"
     )
-    tests = [
-        integrity_case(connection, FAIL_EXPECTED[case.number][0],
-                       sql_body(case.sql), FAIL_EXPECTED[case.number][1])
-        for case in fail_cases
-    ]
+    tests = []
+    for case in fail_cases:
+        text, ev = integrity_case(connection, FAIL_EXPECTED[case.number][0],
+                                  sql_body(case.sql), FAIL_EXPECTED[case.number][1])
+        evidence[case.number] = ev
+        tests.append(text)
     (EVIDENCE / "bonus_02_fk_error_test.txt").write_text(
         "=== INTEGRITY CONSTRAINT TESTS ===\n\n" + "\n\n".join(tests) + "\n",
         encoding="utf-8",
@@ -382,12 +434,20 @@ def verify_integrity(connection: sqlite3.Connection) -> list[str]:
     return [test.splitlines()[0] for test in tests]
 
 
-def execute_bonus(connection: sqlite3.Connection, cases: list[SqlCase]) -> list[str]:
+def execute_bonus(connection: sqlite3.Connection, cases: list[SqlCase],
+                  evidence: dict[str, list[str]]) -> list[str]:
     assert len(cases) == 5, f"보너스 SQL은 5개여야 합니다: {len(cases)}"
     results: dict[str, tuple[list[str], list[sqlite3.Row]]] = {}
     for case in cases:
         cursor = connection.execute(case.sql)
         results[case.number] = ([column[0] for column in cursor.description], cursor.fetchall())
+
+    for number, (columns, rows) in results.items():
+        ev = [f"{EVIDENCE_PREFIX} rows={len(rows)}"]
+        ev.extend(f"{EVIDENCE_PREFIX} {line}" for line in tsv(columns, rows).splitlines())
+        evidence[number] = ev
+    evidence["B01"].append(f"{EVIDENCE_PREFIX} B02와 집합 동치 PASS")
+    evidence["B02"].append(f"{EVIDENCE_PREFIX} B01과 집합 동치 PASS")
 
     join_rows = [tuple(row) for row in results["B01"][1]]
     subquery_rows = [tuple(row) for row in results["B02"][1]]
@@ -449,11 +509,19 @@ def main() -> None:
     core_cases = split_cases("3_queries.sql", CORE_MARKER)
     bonus_cases = split_cases("4_bonus_queries.sql", BONUS_MARKER)
     connection = new_database(db_path)
-    checks.extend(execute_core(connection, core_cases))
+    core_evidence: dict[str, list[str]] = {}
+    bonus_evidence: dict[str, list[str]] = {}
+    fail_evidence: dict[str, list[str]] = {}
+    checks.extend(execute_core(connection, core_cases, core_evidence))
     checks.append("bonus_runs_on_post_mutation_db PASS")
-    checks.extend(verify_integrity(connection))
-    checks.extend(execute_bonus(connection, bonus_cases))
+    checks.extend(verify_integrity(connection, fail_evidence))
+    checks.extend(execute_bonus(connection, bonus_cases, bonus_evidence))
     connection.close()
+
+    # 실행 증거를 SQL 스크립트 주석으로 재생성한다(열면 결과가 보인다, 어긋날 수 없다).
+    n_core = embed_evidence("3_queries.sql", core_evidence)
+    n_bonus = embed_evidence("4_bonus_queries.sql", {**bonus_evidence, **fail_evidence})
+    checks.append(f"inline_evidence=core:{n_core},bonus+fail:{n_bonus} PASS")
     checks.extend(verify_docs_sync(core_cases, bonus_cases))
 
     # 임시 디렉터리의 무작위 경로를 증거 파일에 쓰면 실행할 때마다
